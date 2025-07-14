@@ -2,35 +2,55 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
-import GameResultScreen from '../components/GameResultScreen';
 import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
 import { CellState, PlayerType, PlayerInfo } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
+import { AILevel, aiMove, getAIAvatar, getAIName, getAIThinkingTime, getAllAICharacters } from '../utils/aiLogic';
 
-interface GamePlayScreenProps {
-  player1: PlayerInfo;
-  player2: PlayerInfo;
-  onGameEnd?: (winner: string | null) => void;
+interface AIGameScreenProps {
+  playerName: string;
+  aiLevel: AILevel;
 }
 
-const AVATERS = {
-  player1: '/assets/Avater/Avater/normal_graycat.png',
-  player2: '/assets/Avater/Avater/normal_tiger.png',
-};
-
-export default function GamePlayScreen({ player1: initialPlayer1, player2: initialPlayer2, onGameEnd }: GamePlayScreenProps) {
+export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps) {
   const router = useRouter();
-  const [player1, setPlayer1] = useState<PlayerInfo>({ ...initialPlayer1, avatar: AVATERS.player1 });
-  const [player2, setPlayer2] = useState<PlayerInfo>({ ...initialPlayer2, avatar: AVATERS.player2 });
+  
+  // プレイヤー情報
+  const [player1, setPlayer1] = useState<PlayerInfo>({
+    name: playerName,
+    avatar: '/assets/Avater/Avater/normal_graycat.png',
+    score: 0,
+    isTurn: true,
+    timer: 0,
+    isActive: true,
+    type: 'graycat',
+  });
+  
+  const [player2, setPlayer2] = useState<PlayerInfo>({
+    name: getAIName(aiLevel),
+    avatar: getAIAvatar(aiLevel),
+    score: 0,
+    isTurn: false,
+    timer: 0,
+    isActive: true,
+    type: 'ai',
+  });
+
+  // ゲーム状態
   const [gameBoard, setGameBoard] = useState<CellState[][]>(createEmptyBoard());
   const [highlightedColumn, setHighlightedColumn] = useState<number | null>(null);
+  const [lastMoveColumn, setLastMoveColumn] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [timers, setTimers] = useState({ player1: 0, player2: 0 });
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [gameOver, setGameOver] = useState(false);
   const [result, setResult] = useState<{ result: 'win' | 'lose' | 'draw'; winner?: string } | null>(null);
   const [finalBoard, setFinalBoard] = useState<CellState[][] | null>(null);
+
+  // AI関連の状態
+  const [aiThinking, setAiThinking] = useState(false);
+  const [aiThinkingText, setAiThinkingText] = useState('');
 
   // 演出用の状態
   const [comboVisible, setComboVisible] = useState(false);
@@ -45,10 +65,14 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
   const [fireworkVisible, setFireworkVisible] = useState(false);
   const effectIdRef = useRef(0);
 
+  // 強さ選択ポップアップの状態
+  const [showStrengthPopup, setShowStrengthPopup] = useState(false);
+  const [selectedStrength, setSelectedStrength] = useState<AILevel>(aiLevel);
+
   // ルール説明ポップアップの状態
   const [showRules, setShowRules] = useState(false);
 
-  // タイマー: 自分の番の時だけ増える
+  // タイマー: プレイヤーの番の時だけ増える
   useEffect(() => {
     if (gameOver) return;
     if (timerRef.current) clearInterval(timerRef.current);
@@ -62,11 +86,60 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [player1.isTurn, player2.isTurn, gameOver]);
 
+  // AIの思考演出
+  useEffect(() => {
+    if (aiThinking) {
+      const thinkingTexts = [
+        '考え中...',
+        '計算中...',
+        '分析中...',
+        '戦略を練り中...',
+        '最適解を探索中...',
+      ];
+      let textIndex = 0;
+      const textInterval = setInterval(() => {
+        setAiThinkingText(thinkingTexts[textIndex]);
+        textIndex = (textIndex + 1) % thinkingTexts.length;
+      }, 800);
+      
+      return () => clearInterval(textInterval);
+    }
+  }, [aiThinking]);
+
+  // AIの手番処理
+  useEffect(() => {
+    if (player2.isTurn && !isProcessing && !gameOver) {
+      handleAITurn();
+    }
+  }, [player2.isTurn, isProcessing, gameOver]);
+
+  // AIの手番を処理
+  const handleAITurn = async () => {
+    if (isProcessing || gameOver) return;
+    
+    setIsProcessing(true);
+    setAiThinking(true);
+    
+    // AIの思考時間（現在のAI強度を使用）
+    const currentAILevel = player2.name === getAIName(aiLevel) ? aiLevel : selectedStrength;
+    const thinkingTime = getAIThinkingTime(currentAILevel);
+    await new Promise(resolve => setTimeout(resolve, thinkingTime));
+    
+    setAiThinking(false);
+    
+    // AIの手を決定（現在のAI強度を使用）
+    const aiColumn = aiMove(gameBoard, currentAILevel);
+    if (aiColumn !== -1) {
+      await handleColumnClick(aiColumn);
+    }
+  };
+
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = async (columnIndex: number) => {
     if (isProcessing || gameOver) return;
     const playerType: PlayerType = player1.isTurn ? 'player1' : 'player2';
     if (isColumnFull(gameBoard, columnIndex)) return;
+    
     // 一番下の空セルを探す
     let targetRow = -1;
     for (let row = gameBoard.length - 1; row >= 0; row--) {
@@ -76,29 +149,28 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
       }
     }
     if (targetRow === -1) return;
+    
     setIsProcessing(true);
+    setLastMoveColumn(columnIndex); // 最後に置いた列を記録
+    setHighlightedColumn(null); // コマを置いた直後にホバー解除
+    
     // セルを置く
     let newBoard = gameBoard.map((row, rIdx) =>
       row.map((cell, cIdx) => (rIdx === targetRow && cIdx === columnIndex ? { state: 'normal', player: playerType } : cell))
     );
     setGameBoard(newBoard);
-    
+
     // 盤面が安定するまで両プレイヤーで連鎖判定
     let comboing = true;
     let localScore1 = 0;
     let localScore2 = 0;
     let comboChainCount = 0;
+    let tempPlayer1Score = player1.score;
+    let tempPlayer2Score = player2.score;
+    let comboWin = false;
     while (comboing) {
       comboing = false;
       comboChainCount++;
-      
-      // COMBO!演出を表示
-      if (comboChainCount > 1) {
-        setComboCount(comboChainCount);
-        setComboVisible(true);
-        setTimeout(() => setComboVisible(false), 2000);
-      }
-
       // 1. どちらのプレイヤーも4つ揃いがあるか判定
       const combos = [
         { type: 'player1' as PlayerType, result: checkForCombos(newBoard, 'player1') },
@@ -117,10 +189,45 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
             )
           );
           setGameBoard(newBoard);
-          if (type === 'player1') localScore1++;
-          if (type === 'player2') localScore2++;
+          if (type === 'player1') {
+            localScore1++;
+            tempPlayer1Score++;
+          }
+          if (type === 'player2') {
+            localScore2++;
+            tempPlayer2Score++;
+          }
         }
       });
+      // COMBO!演出を表示
+      if (comboChainCount > 1 && foundCombo) {
+        setComboCount(comboChainCount);
+        setComboVisible(true);
+        setTimeout(() => setComboVisible(false), 1200);
+      }
+      // ここで勝利判定
+      if (checkWinCondition(tempPlayer1Score)) {
+        setPlayer1(prev => ({ ...prev, score: tempPlayer1Score }));
+        setPlayer2(prev => ({ ...prev, score: tempPlayer2Score }));
+        setGameOver(true);
+        setResult({ result: 'win', winner: player1.name });
+        setFinalBoard(newBoard);
+        setFireworkVisible(true);
+        setTimeout(() => setFireworkVisible(false), 3000);
+        comboWin = true;
+        break;
+      }
+      if (checkWinCondition(tempPlayer2Score)) {
+        setPlayer1(prev => ({ ...prev, score: tempPlayer1Score }));
+        setPlayer2(prev => ({ ...prev, score: tempPlayer2Score }));
+        setGameOver(true);
+        setResult({ result: 'win', winner: player2.name });
+        setFinalBoard(newBoard);
+        setFireworkVisible(true);
+        setTimeout(() => setFireworkVisible(false), 3000);
+        comboWin = true;
+        break;
+      }
       if (!foundCombo) break;
       // 3. 星セルを一定時間後に消去
       await new Promise(res => setTimeout(res, 700));
@@ -144,6 +251,10 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
       await new Promise(res => setTimeout(res, 300));
       comboing = true;
     }
+    if (comboWin) return;
+    
+    // 最後に置いた列の強調を少し後に消す
+    setTimeout(() => setLastMoveColumn(null), 2000);
     
     // スコア加算エフェクトを表示
     if (localScore1 > 0) {
@@ -188,24 +299,28 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
       setFireworkVisible(true);
       setTimeout(() => setFireworkVisible(false), 3000);
       setIsProcessing(false);
-            return;
-          }
+      return;
+    }
+    
     // 引き分け判定
     if (newBoard.every(row => row.every(cell => cell.state !== 'empty'))) {
       setGameOver(true);
       setResult({ result: 'draw' });
       setFinalBoard(newBoard);
       setIsProcessing(false);
-        return;
-      }
-    // ターン交代
-      setPlayer1(prev => ({ ...prev, isTurn: !prev.isTurn }));
-      setPlayer2(prev => ({ ...prev, isTurn: !prev.isTurn }));
-      setIsProcessing(false);
-    };
+      return;
+    }
     
-  // ハイライト
-  const handleColumnHover = (col: number) => { if (!isProcessing && !gameOver) setHighlightedColumn(col); };
+    // ターン交代
+    setPlayer1(prev => ({ ...prev, isTurn: !prev.isTurn }));
+    setPlayer2(prev => ({ ...prev, isTurn: !prev.isTurn }));
+    setIsProcessing(false);
+  };
+
+  // ハイライト（プレイヤーの番の時のみ）
+  const handleColumnHover = (col: number) => { 
+    if (!isProcessing && !gameOver && player1.isTurn) setHighlightedColumn(col); 
+  };
   const handleColumnLeave = () => { setHighlightedColumn(null); };
 
   // タイマー表示
@@ -213,7 +328,32 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
 
   // 再戦ボタン押下時
   const handleRematch = () => {
-    router.push('/waitingForOpponent');
+    router.push('/');
+  };
+
+  // 強さ選択ポップアップでゲーム開始
+  const handleStartWithNewStrength = () => {
+    const newPlayer2 = {
+      ...player2,
+      name: getAIName(selectedStrength),
+      avatar: getAIAvatar(selectedStrength),
+    };
+    setPlayer2(newPlayer2);
+    setShowStrengthPopup(false);
+    
+    // ゲームをリセット
+    setGameBoard(createEmptyBoard());
+    setTimers({ player1: 0, player2: 0 });
+    setGameOver(false);
+    setResult(null);
+    setFinalBoard(null);
+    setComboVisible(false);
+    setComboCount(0);
+    setScoreEffects([]);
+    setFireworkVisible(false);
+    setLastMoveColumn(null);
+    setPlayer1(prev => ({ ...prev, isTurn: true, score: 0 }));
+    setPlayer2(prev => ({ ...prev, isTurn: false, score: 0 }));
   };
 
   // UI
@@ -227,44 +367,57 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
           <div className="text-4xl font-extrabold text-black tracking-tight drop-shadow-sm">connect4plus</div>
           <div className="text-sm text-gray-500 mt-1 font-semibold">次世代方立体四目並べ</div>
         </div>
+        
         {/* User情報 */}
-        <div className="flex flex-row justify-center items-end gap-24 w-full max-w-2xl mt-4 mb-8">
-          {/* Player1 */}
+        <div className="flex flex-row justify-center items-end gap-24 w-full max-w-2xl mt-4 mb-8 relative">
+          {/* Player1 (プレイヤー) */}
           <div className={`flex flex-col items-center transition-all duration-300 ${player1.isTurn ? 'ring-4 ring-emerald-400 shadow-xl bg-white' : 'bg-white/60'} rounded-2xl px-4 py-2`}> 
             <img src={player1.avatar} className="w-20 h-20 rounded-full bg-white shadow-lg border-2 border-emerald-200" />
-            <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2">
-              {player1.name}
-              <span className="inline-block w-4 h-4 rounded-full border border-gray-300" style={{ background: '#4D6869' }} title="あなたのコマ色" />
+            <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2 max-w-32">
+              <span className="truncate" title={player1.name}>{player1.name}</span>
+              <span className="inline-block w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#4D6869' }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
             <div className="w-24 mt-2"><ScoreGauge score={player1.score} maxScore={3} playerType="player1" /></div>
           </div>
+          
           {/* VS */}
           <div className="text-3xl font-extrabold text-gray-400 mb-10 select-none">VS</div>
-          {/* Player2 */}
-          <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-4 ring-emerald-400 shadow-xl bg-white' : 'bg-white/60'} rounded-2xl px-4 py-2`}>
+          
+          {/* Player2 (AI) */}
+          <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-4 ring-emerald-400 shadow-xl bg-white' : 'bg-white/60'} rounded-2xl px-4 py-2 relative`}>
             <img src={player2.avatar} className="w-20 h-20 rounded-full bg-white shadow-lg border-2 border-emerald-200" />
-            <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2">
-              {player2.name}
-              <span className="inline-block w-4 h-4 rounded-full border border-gray-300" style={{ background: '#55B89C' }} title="あなたのコマ色" />
+            <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2 max-w-32">
+              <span className="truncate" title={player2.name}>{player2.name}</span>
+              <span className="inline-block w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#55B89C' }} title="AIのコマ色" />
             </div>
             <div className="text-gray-500 text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
             <div className="w-24 mt-2"><ScoreGauge score={player2.score} maxScore={3} playerType="player2" /></div>
+            {/* AI思考中ポップアップ */}
+            {aiThinking && (
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 px-4 py-2 bg-white border-2 border-emerald-300 rounded-xl shadow-lg animate-pulse flex items-center gap-2">
+                <span className="text-emerald-500 text-lg">💭</span>
+                <span className="text-xs font-bold text-emerald-700">考え中...</span>
+              </div>
+            )}
           </div>
         </div>
+
         {/* ゲーム盤面 */}
         <div className="flex flex-col items-center w-full">
-          <div className="flex justify-center items-center">
+          <div className="flex justify-center items-center relative">
             <div className="rounded-3xl shadow-2xl p-4 bg-[#D9F2E1]">
               <GameGrid
                 board={gameBoard}
                 highlightedColumn={highlightedColumn}
+                lastMoveColumn={lastMoveColumn}
                 onColumnClick={handleColumnClick}
                 onColumnHover={handleColumnHover}
                 onColumnLeave={handleColumnLeave}
               />
             </div>
           </div>
+          
           {/* Presented by & ボタン群 */}
           <div className="flex flex-col items-center w-full mt-8">
             <div className="text-sm text-gray-500 font-semibold mb-4">Presented by Kotaro Design Lab.</div>
@@ -279,11 +432,12 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
                 onClick={handleRematch}
                 className="px-6 py-2 bg-emerald-400 text-white rounded-full text-base font-semibold shadow hover:bg-emerald-500 transition-colors"
               >
-                もう一度遊ぶ
+                タイトルに戻る
               </button>
             </div>
           </div>
         </div>
+        
         {/* 結果モーダル */}
         {gameOver && result && finalBoard && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -303,15 +457,87 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
               <div className="w-full flex justify-center mb-4">
                 <GameGrid board={finalBoard} />
               </div>
-              <button
-                onClick={handleRematch}
-                className="px-8 py-2 bg-emerald-400 text-white rounded-full text-lg font-semibold shadow hover:bg-emerald-500 transition-colors mt-2"
-              >
-                もう一度遊ぶ
-              </button>
-        </div>
+              <div className="flex flex-row gap-4 mt-4">
+                <button
+                  onClick={() => router.push('/')}
+                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold shadow hover:bg-gray-300 transition-colors"
+                >
+                  ホームに戻る
+                </button>
+                <button
+                  onClick={handleStartWithNewStrength}
+                  className="px-6 py-2 bg-emerald-400 text-white rounded-full font-semibold shadow hover:bg-emerald-500 transition-colors"
+                >
+                  もう一度同じ強さで再戦
+                </button>
+              </div>
+            </div>
           </div>
         )}
+
+        {/* 強さ選択ポップアップ */}
+        {showStrengthPopup && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center min-w-[500px] max-h-[80vh] overflow-y-auto">
+              <div className="text-2xl font-bold text-gray-800 mb-6">AIキャラクターを選択</div>
+              
+              <div className="grid grid-cols-1 gap-4 w-full mb-6">
+                {getAllAICharacters().map((character) => (
+                  <button
+                    key={character.id}
+                    onClick={() => setSelectedStrength(character.id)}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      selectedStrength === character.id
+                        ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <img 
+                        src={character.avatar} 
+                        alt={character.name}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold text-lg">{character.name}</div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            character.level === '初級' ? 'bg-green-100 text-green-700' :
+                            character.level === '中級' ? 'bg-blue-100 text-blue-700' :
+                            character.level === '上級' ? 'bg-orange-100 text-orange-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {character.level}
+                          </span>
+                        </div>
+                        <div className="text-sm opacity-75 font-semibold">「{character.nickname}」</div>
+                        <div className="text-xs opacity-75 mt-1">{character.levelDescription}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowStrengthPopup(false)}
+                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold shadow hover:bg-gray-300 transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleStartWithNewStrength}
+                  className="px-6 py-2 bg-emerald-400 text-white rounded-full font-semibold shadow hover:bg-emerald-500 transition-colors"
+                >
+                  ゲーム開始
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ルール説明ポップアップ */}
+        <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
       </div>
       
       {/* 演出エフェクト */}
@@ -321,9 +547,6 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
         scoreEffects={scoreEffects}
         fireworkVisible={fireworkVisible}
       />
-
-      {/* ルール説明ポップアップ */}
-      <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
     </main>
   );
 } 

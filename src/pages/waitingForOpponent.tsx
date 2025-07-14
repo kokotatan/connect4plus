@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '../components/Layout';
+import RulesPopup from '../components/RulesPopup';
 
 const FIXED_ROOM_ID = 'KAKOTA';
 const DEFAULT_PLAYER1 = 'にゃんこ';
@@ -55,6 +56,8 @@ export default function WaitingForOpponentScreen({
   player2Name = DEFAULT_PLAYER2,
   onGameStart
 }: WaitingForOpponentScreenProps) {
+  const [showRules, setShowRules] = useState(false);
+
   return (
     <Layout>
       <style>{keyframes}</style>
@@ -62,6 +65,14 @@ export default function WaitingForOpponentScreen({
       <div className="w-full flex flex-col items-center mb-4 mt-2">
         <h2 className="text-2xl font-semibold text-black text-center leading-snug mb-1">対戦相手の参加を待っています</h2>
         <p className="text-xs text-gray-500 font-semibold text-center leading-snug">もう少しでゲーム開始！</p>
+        
+        {/* ルール説明ボタン */}
+        <button
+          onClick={() => setShowRules(true)}
+          className="mt-4 px-4 py-2 bg-emerald-400 text-white rounded-full text-sm font-semibold shadow hover:bg-emerald-500 transition-colors"
+        >
+          📖 ルール説明
+        </button>
       </div>
       {/* メインカード */}
       <div className="bg-white rounded-2xl shadow-lg w-80 flex flex-col items-center px-6 py-6 mb-4">
@@ -103,6 +114,9 @@ export default function WaitingForOpponentScreen({
       <div className="flex justify-center items-center w-full mt-2 mb-2">
         <img src={CONNECT4_IMAGE} alt="Connect4" className="w-40 h-40 object-contain" />
       </div>
+      
+      {/* ルール説明ポップアップ */}
+      <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
     </Layout>
   );
 } 
