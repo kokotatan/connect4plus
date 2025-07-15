@@ -8,7 +8,7 @@ interface BackgroundMusicProps {
 
 export default function BackgroundMusic({ isPlaying, volume = 0.3, showControls = false }: BackgroundMusicProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [isBGMEnabled, setIsBGMEnabled] = useState(false);
+  const [isBGMEnabled, setIsBGMEnabled] = useState(false); // デフォルトでオフ
 
   useEffect(() => {
     const audio = audioRef.current;

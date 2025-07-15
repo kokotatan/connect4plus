@@ -261,20 +261,24 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         let phaseIndex = 0;
         const phaseInterval = setInterval(() => {
           if (phaseIndex < patterns.phases.length) {
-            setAiThinkingText(patterns.phases[phaseIndex]);
-            setAiThinkingPhase(phaseIndex);
+            // 「情報収集開始」は表示しない
+            const phaseText = patterns.phases[phaseIndex];
+            if (phaseText !== '情報収集開始...') {
+              setAiThinkingText(phaseText);
+              setAiThinkingPhase(phaseIndex);
+            }
             phaseIndex++;
           } else {
             clearInterval(phaseInterval);
           }
-        }, 2000); // 1秒 → 2秒に延長
+        }, 2000); // 2秒間隔
         
         return () => {
           clearInterval(phaseInterval);
           setShowMathBackground(false);
         };
       } else {
-        // 初級・中級AIは単語単位で自然な表示
+        // 初級・中級AIは単語単位で自然な表示（より短い間隔）
         const words = [
           ...patterns.calm.map(msg => msg.replace('...', '')),
           ...patterns.excited.map(msg => msg.replace('...', ''))
@@ -285,7 +289,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
           const randomWord = words[Math.floor(Math.random() * words.length)];
           setAiThinkingText(randomWord);
           wordIndex++;
-        }, 1500); // 1.5秒間隔で単語を表示
+        }, 800); // 1.5秒 → 0.8秒に短縮
         
         return () => {
           clearInterval(wordInterval);
@@ -701,7 +705,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         </div>
         
         {/* 背景BGM */}
-        <BackgroundMusic isPlaying={true} volume={0.2} showControls={true} />
+        <BackgroundMusic isPlaying={false} volume={0.2} showControls={true} />
       </main>
     );
   }
@@ -965,7 +969,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       />
       
       {/* 背景BGM */}
-      <BackgroundMusic isPlaying={true} volume={0.2} showControls={true} />
+      <BackgroundMusic isPlaying={false} volume={0.2} showControls={true} />
     </main>
   );
 } 

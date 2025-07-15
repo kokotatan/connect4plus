@@ -595,7 +595,7 @@ export default function GamePlayScreen({
       )}
 
       {/* 背景BGM */}
-      <BackgroundMusic isPlaying={true} volume={0.2} showControls={true} />
+      <BackgroundMusic isPlaying={false} volume={0.2} showControls={true} />
 
     </main>
   );
