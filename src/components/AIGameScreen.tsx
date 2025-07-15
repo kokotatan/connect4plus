@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
@@ -303,16 +303,11 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   }, [aiThinking, aiLevel, selectedStrength, player2.name]);
 
   // AIの手番処理
-  useEffect(() => {
-    if (player2.isTurn && !isProcessing && !gameOver) {
-      handleAITurn();
-    }
-  }, [player2.isTurn, isProcessing, gameOver]);
-
-  // AIの手番を処理
-  const handleAITurn = async () => {
+  const handleAITurn = useCallback(async () => {
+    console.log('handleAITurn実行:', { isProcessing, gameOver });
     if (isProcessing || gameOver) return;
     
+    console.log('AI思考開始');
     setIsProcessing(true);
     setAiThinking(true);
     
@@ -344,10 +339,19 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     if (aiColumn !== -1) {
       await handleColumnClick(aiColumn);
     }
-  };
+  }, [isProcessing, gameOver, aiLevel, selectedStrength, player2.name, gameBoard, handleColumnClick]);
+
+  // AIの手番を監視
+  useEffect(() => {
+    console.log('AI手番監視:', { player2Turn: player2.isTurn, isProcessing, gameOver });
+    if (player2.isTurn && !isProcessing && !gameOver) {
+      console.log('AI手番開始');
+      handleAITurn();
+    }
+  }, [player2.isTurn, isProcessing, gameOver, handleAITurn]);
 
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
-  const handleColumnClick = async (columnIndex: number) => {
+  const handleColumnClick = useCallback(async (columnIndex: number) => {
     if (isProcessing || gameOver) return;
     const playerType: PlayerType = player1.isTurn ? 'player1' : 'player2';
     if (isColumnFull(gameBoard, columnIndex)) return;
@@ -565,7 +569,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setPlayer1(prev => ({ ...prev, isTurn: !prev.isTurn }));
     setPlayer2(prev => ({ ...prev, isTurn: !prev.isTurn }));
     setIsProcessing(false);
-  };
+  }, [isProcessing, gameOver, player1.isTurn, player1.score, player2.score, gameBoard, gameSettings.winScore]);
 
   // ハイライト（プレイヤーの番の時のみ）
   const handleColumnHover = (col: number) => { 
