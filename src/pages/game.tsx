@@ -71,13 +71,17 @@ export default function GamePage() {
     );
   }
 
-  // プレイヤー情報を設定（firstTurnパラメータを考慮）
+  // プレイヤー情報を設定（firstTurnパラメータを優先）
   const initialTurn = firstTurn === 'player1' ? 'player1' : 'player2';
+  // Firebaseに保存されたfirstTurnを優先、なければURLパラメータを使用
+  const savedFirstTurn = roomData.gameState?.firstTurn;
+  const currentTurn = roomData.gameState?.currentTurn || savedFirstTurn || initialTurn;
+  
   const player1 = {
     name: roomData.player1.name,
     avatar: '/assets/Avater/Avater/normal_graycat.png',
     score: roomData.gameState?.player1Score || 0,
-    isTurn: roomData.gameState?.currentTurn === 'player1' || initialTurn === 'player1',
+    isTurn: currentTurn === 'player1',
     timer: 0,
     isActive: true,
     type: 'graycat' as const,
@@ -87,7 +91,7 @@ export default function GamePage() {
     name: roomData.player2.name,
     avatar: '/assets/Avater/Avater/normal_tiger.png',
     score: roomData.gameState?.player2Score || 0,
-    isTurn: roomData.gameState?.currentTurn === 'player2' || initialTurn === 'player2',
+    isTurn: currentTurn === 'player2',
     timer: 0,
     isActive: true,
     type: 'tiger' as const,

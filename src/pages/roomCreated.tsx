@@ -103,7 +103,11 @@ export default function RoomCreatedScreen() {
           <span className="text-gray-500 text-xs font-semibold leading-snug">招待URL</span>
           <div className="flex items-center gap-2">
             <div className="flex-1 bg-gray-50 rounded-[10px] outline outline-1 outline-gray-300 px-3 py-2 text-black text-xs font-semibold leading-snug truncate">{inviteUrl}</div>
-            <button onClick={handleCopyUrl} className="w-16 h-9 bg-green-400 rounded-[10px] flex items-center justify-center hover:bg-green-500 transition-colors">
+            <button 
+              onClick={handleCopyUrl} 
+              className="w-16 h-9 bg-green-400 rounded-[10px] flex items-center justify-center hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-400 transition-colors min-h-[44px]"
+              aria-label="招待URLをコピー"
+            >
               <span className="text-white text-xs font-semibold leading-snug">{copied ? 'コピー済' : 'コピー'}</span>
             </button>
           </div>

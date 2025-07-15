@@ -112,7 +112,7 @@ export default function HomePage() {
       <div className="w-full max-w-md flex flex-col items-center gap-8">
         <div className="mb-2">
           <h1 className="text-4xl font-extrabold text-black text-center tracking-tight drop-shadow-sm">connect4plus</h1>
-          <p className="text-lg text-gray-500 font-semibold text-center mt-1">次世代方立体四目並べ</p>
+          <p className="text-lg text-gray-500 font-semibold text-center mt-1">次世代型立体四目並べ</p>
           {/* Firebase接続状態表示 */}
           {firebaseConnected !== null && (
             <div className={`text-sm font-semibold text-center mt-2 ${firebaseConnected ? 'text-green-600' : 'text-red-600'}`}>
@@ -124,7 +124,8 @@ export default function HomePage() {
         {/* ルール説明ボタン */}
         <button
           onClick={() => setShowRules(true)}
-          className="px-6 py-2 bg-emerald-400 text-white rounded-full text-lg font-semibold shadow hover:bg-emerald-500 transition-colors"
+          className="px-6 py-2 bg-emerald-400 text-white rounded-full text-lg font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
+          aria-label="ゲームルールを表示"
         >
           📖 ルール説明
         </button>
@@ -241,7 +242,8 @@ export default function HomePage() {
                   <p className="text-xs text-gray-500">{selectedChar.levelDescription}</p>
                   <button
                     onClick={() => handleShowCharacterDetails(selectedChar.id)}
-                    className="mt-2 px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-semibold hover:bg-gray-300 transition-colors"
+                    className="mt-2 px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-semibold hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[32px]"
+                    aria-label={`${selectedChar.name}の詳細を表示`}
                   >
                     詳細を見る
                   </button>

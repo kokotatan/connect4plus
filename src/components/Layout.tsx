@@ -10,7 +10,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* ヘッダー（上部） */}
       <header className="w-full max-w-md mx-auto pt-6 pb-2 flex flex-col items-center">
         <h1 className="text-4xl font-extrabold text-black text-center tracking-tight drop-shadow-sm">connect4plus</h1>
-        <p className="text-lg text-gray-500 font-semibold text-center mt-1">次世代方立体四目並べ</p>
+        <p className="text-lg text-gray-500 font-semibold text-center mt-1">次世代型立体四目並べ</p>
       </header>
       {/* メイン */}
       <main className="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto py-4">

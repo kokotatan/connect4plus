@@ -53,21 +53,72 @@ export const Cell: React.FC<CellProps> = ({ state, isHighlighted = false }) => {
         style={{ 
           background: getCellColor(),
           opacity: state.state === 'empty' && fadeOut ? 0 : (state.state === 'empty' ? 0.3 : 1),
-          transition: fadeOut ? 'opacity 0.4s' : undefined
+          transition: fadeOut ? 'opacity 0.4s' : undefined,
+          // 星セルの場合、より目立つ効果を追加
+          ...(state.state === 'star' && {
+            boxShadow: '0 0 20px rgba(151, 71, 255, 0.8), inset 0 0 10px rgba(151, 71, 255, 0.3)',
+            animation: 'starPulse 1.5s ease-in-out infinite',
+            transform: 'scale(1.1)',
+          })
         }}
       >
         {state.state === 'star' && (
-          <svg
-            viewBox="0 0 24 24"
-            width="20"
-            height="20"
-            style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-            fill={COLORS.win}
-          >
-            <polygon points="12,2 15,9 22,9.5 17,14.5 18.5,22 12,18 5.5,22 7,14.5 2,9.5 9,9" />
-          </svg>
+          <>
+            {/* 星のアイコン */}
+            <svg
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              style={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -50%)',
+                filter: 'drop-shadow(0 0 4px rgba(151, 71, 255, 0.8))'
+              }}
+              fill="#FFFFFF"
+              className="animate-pulse"
+            >
+              <polygon points="12,2 15,9 22,9.5 17,14.5 18.5,22 12,18 5.5,22 7,14.5 2,9.5 9,9" />
+            </svg>
+            {/* 光る効果 */}
+            <div 
+              className="absolute inset-0 rounded-full animate-ping"
+              style={{
+                background: 'radial-gradient(circle, rgba(151, 71, 255, 0.4) 0%, transparent 70%)',
+                animation: 'starGlow 2s ease-in-out infinite'
+              }}
+            />
+          </>
         )}
       </div>
+      
+      {/* 星セル用のCSSアニメーション */}
+      {state.state === 'star' && (
+        <style jsx>{`
+          @keyframes starPulse {
+            0%, 100% {
+              transform: scale(1.1);
+              box-shadow: 0 0 20px rgba(151, 71, 255, 0.8), inset 0 0 10px rgba(151, 71, 255, 0.3);
+            }
+            50% {
+              transform: scale(1.2);
+              box-shadow: 0 0 30px rgba(151, 71, 255, 1), inset 0 0 15px rgba(151, 71, 255, 0.5);
+            }
+          }
+          
+          @keyframes starGlow {
+            0%, 100% {
+              opacity: 0.6;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.1);
+            }
+          }
+        `}</style>
+      )}
     </div>
   );
 };

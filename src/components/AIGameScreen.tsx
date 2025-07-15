@@ -65,6 +65,11 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
   const [fireworkVisible, setFireworkVisible] = useState(false);
   const effectIdRef = useRef(0);
 
+  // Connect4表示改善用の状態
+  const [connect4Visible, setConnect4Visible] = useState(false);
+  const [connect4Player, setConnect4Player] = useState<'player1' | 'player2' | null>(null);
+  const [connect4Message, setConnect4Message] = useState('');
+
   // 強さ選択ポップアップの状態
   const [showStrengthPopup, setShowStrengthPopup] = useState(false);
   const [selectedStrength, setSelectedStrength] = useState<AILevel>(aiLevel);
@@ -205,6 +210,20 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
       combos.forEach(({ type, result }) => {
         if (result.hasCombo) {
           foundCombo = true;
+          
+          // Connect4成立時の視覚的フィードバック
+          const playerName = type === 'player1' ? player1.name : player2.name;
+          setConnect4Player(type);
+          setConnect4Message(`${playerName}がConnect4しました！`);
+          setConnect4Visible(true);
+          
+          // Connect4表示を2秒間表示（見やすくするため）
+          setTimeout(() => {
+            setConnect4Visible(false);
+            setConnect4Player(null);
+            setConnect4Message('');
+          }, 2000); // 1.5秒 → 2秒
+          
           newBoard = newBoard.map((row, rIdx) =>
             row.map((cell, cIdx) =>
               result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
@@ -227,7 +246,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
       if (comboChainCount > 1 && foundCombo) {
         setComboCount(comboChainCount);
         setComboVisible(true);
-        setTimeout(() => setComboVisible(false), 1200);
+        setTimeout(() => setComboVisible(false), 2000); // 1200ms → 2000ms
       }
       // ここで勝利判定
       if (checkWinCondition(tempPlayer1Score)) {
@@ -253,8 +272,8 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
         break;
       }
       if (!foundCombo) break;
-      // 3. 星セルを一定時間後に消去
-      await new Promise(res => setTimeout(res, 700));
+      // 3. 星セルを一定時間後に消去（持続時間を延長）
+      await new Promise(res => setTimeout(res, 1500)); // 700ms → 1500ms
       combos.forEach(({ result }) => {
         if (result.hasCombo) {
           newBoard = newBoard.map((row, rIdx) =>
@@ -376,6 +395,9 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
     setScoreEffects([]);
     setFireworkVisible(false);
     setLastMoveColumn(null);
+    setConnect4Visible(false);
+    setConnect4Player(null);
+    setConnect4Message('');
     setPlayer1(prev => ({ ...prev, isTurn: true, score: 0 }));
     setPlayer2(prev => ({ ...prev, isTurn: false, score: 0 }));
   };
@@ -389,7 +411,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
         {/* タイトル */}
         <div className="w-full flex flex-col items-center mt-4 mb-2">
           <div className="text-xl sm:text-2xl font-bold text-black tracking-tight drop-shadow-sm">connect4plus</div>
-          <div className="text-xs sm:text-sm text-gray-500 mt-1 font-semibold">次世代方立体四目並べ</div>
+          <div className="text-xs sm:text-sm text-gray-500 mt-1 font-semibold">次世代型立体四目並べ</div>
         </div>
         
         {/* User情報 */}
@@ -448,13 +470,15 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
             <div className="flex gap-4">
               <button
                 onClick={() => setShowRules(true)}
-                className="px-6 py-2 bg-emerald-400 text-white rounded-full text-base font-semibold shadow hover:bg-emerald-500 transition-colors"
+                className="px-6 py-2 bg-emerald-400 text-white rounded-full text-base font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
+                aria-label="ゲームルールを表示"
               >
                 📖 ルール説明
               </button>
               <button
                 onClick={handleRematch}
-                className="px-6 py-2 bg-emerald-400 text-white rounded-full text-base font-semibold shadow hover:bg-emerald-500 transition-colors"
+                className="px-6 py-2 bg-emerald-400 text-white rounded-full text-base font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
+                aria-label="タイトル画面に戻る"
               >
                 タイトルに戻る
               </button>
@@ -486,13 +510,15 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 sm:mt-4 w-full">
                 <button
                   onClick={() => router.push('/')}
-                  className="px-4 sm:px-8 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-gray-300 transition-colors"
+                  className="px-4 sm:px-8 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
+                  aria-label="ホーム画面に戻る"
                 >
                   ホームに戻る
                 </button>
                 <button
                   onClick={handleStartWithNewStrength}
-                  className="px-4 sm:px-8 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-emerald-500 transition-colors"
+                  className="px-4 sm:px-8 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
+                  aria-label="同じAIキャラクターで再戦"
                 >
                   もう一度同じ強さで再戦
                 </button>
@@ -517,6 +543,8 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
                         ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                     }`}
+                    aria-label={`${character.name}（${character.level}）を選択`}
+                    aria-pressed={selectedStrength === character.id}
                   >
                     <div className="flex items-center gap-3 sm:gap-4">
                       <img 
@@ -547,13 +575,15 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full">
                 <button
                   onClick={() => setShowStrengthPopup(false)}
-                  className="px-4 sm:px-6 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-base font-semibold shadow hover:bg-gray-300 transition-colors"
+                  className="px-4 sm:px-6 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-base font-semibold shadow hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
+                  aria-label="AIキャラクター選択をキャンセル"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={handleStartWithNewStrength}
-                  className="px-4 sm:px-6 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-base font-semibold shadow hover:bg-emerald-500 transition-colors"
+                  className="px-4 sm:px-6 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-base font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
+                  aria-label="選択したAIキャラクターでゲーム開始"
                 >
                   ゲーム開始
                 </button>
@@ -564,6 +594,19 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
 
         {/* ルール説明ポップアップ */}
         <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
+
+        {/* Connect4成立時のポップアップ */}
+        {connect4Visible && connect4Player && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-gradient-to-br from-emerald-50 to-white rounded-3xl shadow-2xl p-8 mx-4 max-w-sm text-center border-4 border-emerald-400 animate-bounce">
+              <div className="text-6xl mb-4 animate-pulse">⭐</div>
+              <div className="text-2xl font-bold text-emerald-600 mb-3">Connect4!</div>
+              <div className="text-lg font-semibold text-gray-800 bg-white rounded-xl p-3 shadow-inner">
+                {connect4Message}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* 演出エフェクト */}

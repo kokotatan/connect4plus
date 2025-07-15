@@ -102,6 +102,7 @@ export default function WaitingForOpponentScreen() {
           set(gameStateRef, {
             board: initialBoard,
             currentTurn: firstTurn,
+            firstTurn: firstTurn, // 抽選結果を明示的に保存
             player1Score: 0,
             player2Score: 0,
             player1Name: roomData.player1.name || '',
@@ -207,10 +208,10 @@ export default function WaitingForOpponentScreen() {
 
   // player2がいない場合のみ「対戦相手の参加を待っています。」画面
   if (!roomData.player2 || !roomData.player1.sessionId || !roomData.player2.sessionId || !(mySessionId === roomData.player1.sessionId || mySessionId === roomData.player2.sessionId)) {
-    return (
-      <Layout>
-        <style>{keyframes}</style>
-        {/* タイトル・サブタイトル */}
+  return (
+    <Layout>
+      <style>{keyframes}</style>
+      {/* タイトル・サブタイトル */}
         <div className="w-full flex flex-col items-center mb-2 mt-2 sm:mb-4">
           <h2 className="text-lg sm:text-2xl font-semibold text-black text-center leading-snug mb-1">対戦相手が参加するのを待っています</h2>
           <p className="text-xs sm:text-sm text-gray-500 font-semibold text-center leading-snug">お友達が参加するとゲームが始まります</p>
@@ -221,44 +222,44 @@ export default function WaitingForOpponentScreen() {
           >
             📖 ルール説明
           </button>
-        </div>
-        {/* メインカード */}
+      </div>
+      {/* メインカード */}
         <div className="bg-white rounded-2xl shadow-lg w-full max-w-xs sm:w-80 flex flex-col items-center px-3 sm:px-6 py-4 sm:py-6 mb-2 sm:mb-4">
-          {/* 待機メッセージ */}
+        {/* 待機メッセージ */}
           <div className="text-black text-base sm:text-lg font-semibold text-center leading-snug mb-2">
             お友達がこのルームに参加するのを待っています。
           </div>
-          {/* 横スクロールアバター（シームレス） */}
+        {/* 横スクロールアバター（シームレス） */}
           <div style={marqueeStyle} className="mb-2 sm:mb-4">
-            <div style={marqueeInnerStyle}>
-              {[...AVATAR_IMAGES, ...AVATAR_IMAGES].map((src, i, arr) => {
-                // gapを最後の画像以外にだけ適用
-                const isLast = (i + 1) % setLength === 0;
-                return (
-                  <img
-                    key={i}
-                    src={src}
-                    alt={`avatar-${i}`}
-                    style={{
-                      width: AVATAR_WIDTH,
-                      height: AVATAR_WIDTH,
-                      objectFit: 'contain',
-                      marginRight: isLast ? 0 : AVATAR_GAP,
-                    }}
-                  />
-                );
-              })}
-            </div>
+          <div style={marqueeInnerStyle}>
+            {[...AVATAR_IMAGES, ...AVATAR_IMAGES].map((src, i, arr) => {
+              // gapを最後の画像以外にだけ適用
+              const isLast = (i + 1) % setLength === 0;
+              return (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`avatar-${i}`}
+                  style={{
+                    width: AVATAR_WIDTH,
+                    height: AVATAR_WIDTH,
+                    objectFit: 'contain',
+                    marginRight: isLast ? 0 : AVATAR_GAP,
+                  }}
+                />
+              );
+            })}
           </div>
+        </div>
           {/* プレイヤー情報表示 */}
           <div className="text-base sm:text-lg text-black font-semibold text-center leading-snug mb-1">
             {roomData.player1.name}
-          </div>
-          {/* ルームID表示 */}
-          <div className="flex items-center justify-center gap-2 mt-1">
-            <span className="text-gray-500 text-xs font-semibold leading-snug">ルームID:</span>
-            <span className="text-blue-500 text-base font-semibold leading-snug">{roomId}</span>
-          </div>
+        </div>
+        {/* ルームID表示 */}
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <span className="text-gray-500 text-xs font-semibold leading-snug">ルームID:</span>
+          <span className="text-blue-500 text-base font-semibold leading-snug">{roomId}</span>
+        </div>
           {/* 参加状況 */}
           <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600">
             この画面のまま、しばらくお待ちください。
@@ -266,7 +267,8 @@ export default function WaitingForOpponentScreen() {
           {/* タイトルに戻るボタン */}
           <button
             onClick={() => router.push('/')}
-            className="mt-4 px-6 py-2 bg-gray-400 text-white rounded-full text-sm font-semibold shadow hover:bg-gray-500 transition-colors"
+            className="mt-4 px-6 py-2 bg-gray-400 text-white rounded-full text-sm font-semibold shadow hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
+            aria-label="タイトル画面に戻る"
           >
             タイトルに戻る
           </button>
@@ -333,7 +335,8 @@ export default function WaitingForOpponentScreen() {
           {currentPlayerType && !readyState[currentPlayerType] && (
             <button
               onClick={handleReady}
-              className="mt-4 sm:mt-8 px-6 sm:px-8 py-2 sm:py-3 bg-emerald-400 text-white rounded-full text-base sm:text-xl font-bold shadow hover:bg-emerald-500 transition-colors w-full"
+              className="mt-4 sm:mt-8 px-6 sm:px-8 py-2 sm:py-3 bg-emerald-400 text-white rounded-full text-base sm:text-xl font-bold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors w-full min-h-[44px]"
+              aria-label="ゲームを開始する準備ができました"
             >
               ゲームスタート
             </button>
@@ -346,19 +349,20 @@ export default function WaitingForOpponentScreen() {
           {/* タイトルに戻るボタン */}
           <button
             onClick={() => router.push('/')}
-            className="mt-4 px-6 py-2 bg-gray-400 text-white rounded-full text-sm font-semibold shadow hover:bg-gray-500 transition-colors"
+            className="mt-4 px-6 py-2 bg-gray-400 text-white rounded-full text-sm font-semibold shadow hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
+            aria-label="タイトル画面に戻る"
           >
             タイトルに戻る
           </button>
-        </div>
-        {/* Connect4画像を白枠の下に配置 */}
-        <div className="flex justify-center items-center w-full mt-2 mb-2">
+      </div>
+      {/* Connect4画像を白枠の下に配置 */}
+      <div className="flex justify-center items-center w-full mt-2 mb-2">
           <img src={CONNECT4_IMAGE} alt="Connect4" className="w-28 h-28 sm:w-40 sm:h-40 object-contain" />
-        </div>
+      </div>
         {/* ルール説明ポップアップ */}
         <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
-      </Layout>
-    );
+    </Layout>
+  );
   }
 
   // 2人揃ったら即ゲーム開始アニメーション（return不要、useEffectで遷移）
