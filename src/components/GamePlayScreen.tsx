@@ -2,16 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
-import GameResultScreen from '../components/GameResultScreen';
 import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
 import { CellState, PlayerType, PlayerInfo } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
+import { ref, set, onValue, off, update } from 'firebase/database';
+import { db, getPlayerInfo } from '../utils/firebase';
 
 interface GamePlayScreenProps {
   player1: PlayerInfo;
   player2: PlayerInfo;
   onGameEnd?: (winner: string | null) => void;
+  roomId?: string;
+  isOnlineMode?: boolean;
 }
 
 const AVATERS = {
@@ -19,7 +22,13 @@ const AVATERS = {
   player2: '/assets/Avater/Avater/normal_tiger.png',
 };
 
-export default function GamePlayScreen({ player1: initialPlayer1, player2: initialPlayer2, onGameEnd }: GamePlayScreenProps) {
+export default function GamePlayScreen({ 
+  player1: initialPlayer1,
+  player2: initialPlayer2,
+  onGameEnd,
+  roomId,
+  isOnlineMode = false
+}: GamePlayScreenProps) {
   const router = useRouter();
   const [player1, setPlayer1] = useState<PlayerInfo>({ ...initialPlayer1, avatar: AVATERS.player1 });
   const [player2, setPlayer2] = useState<PlayerInfo>({ ...initialPlayer2, avatar: AVATERS.player2 });
@@ -31,6 +40,29 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
   const [gameOver, setGameOver] = useState(false);
   const [result, setResult] = useState<{ result: 'win' | 'lose' | 'draw'; winner?: string } | null>(null);
   const [finalBoard, setFinalBoard] = useState<CellState[][] | null>(null);
+
+  // セッション情報からプレイヤーを識別
+  const [currentPlayerInfo, setCurrentPlayerInfo] = useState<any>(null);
+  const [currentPlayerType, setCurrentPlayerType] = useState<'player1' | 'player2' | null>(null);
+
+  useEffect(() => {
+    if (isOnlineMode) {
+      const playerInfo = getPlayerInfo();
+      console.log('セッション情報取得:', playerInfo);
+      setCurrentPlayerInfo(playerInfo);
+      
+      // プレイヤータイプを設定
+      if (playerInfo) {
+        if (playerInfo.isPlayer1) {
+          setCurrentPlayerType('player1');
+          setPlayer1(prev => ({ ...prev, name: playerInfo.playerName }));
+        } else if (playerInfo.isPlayer2) {
+          setCurrentPlayerType('player2');
+          setPlayer2(prev => ({ ...prev, name: playerInfo.playerName }));
+        }
+      }
+    }
+  }, [isOnlineMode]);
 
   // 演出用の状態
   const [comboVisible, setComboVisible] = useState(false);
@@ -47,6 +79,76 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
 
   // ルール説明ポップアップの状態
   const [showRules, setShowRules] = useState(false);
+
+  // Firebase同期（オンラインモード時）
+  useEffect(() => {
+    if (!isOnlineMode || !roomId) return;
+
+    const gameStateRef = ref(db, `rooms/${roomId}/gameState`);
+    
+    // Firebaseからゲーム状態を監視
+    const unsubscribe = onValue(gameStateRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // 初期状態の場合は、既存の状態を保持
+        if (!gameBoard.some(row => row.some(cell => cell.state !== 'empty'))) {
+          // 空の盤面の場合のみ初期状態を設定
+          setGameBoard(data.board || createEmptyBoard());
+        } else {
+          // ゲーム進行中の場合は、処理中でない場合のみ更新
+          if (!isProcessing) {
+            setGameBoard(data.board || createEmptyBoard());
+          }
+        }
+        
+        // プレイヤー情報の更新（自分の情報は保持）
+        setPlayer1(prev => ({ 
+          ...prev, 
+          isTurn: data.currentTurn === 'player1', 
+          score: data.player1Score || 0,
+          name: currentPlayerType === 'player1' ? prev.name : (data.player1Name || prev.name)
+        }));
+        setPlayer2(prev => ({ 
+          ...prev, 
+          isTurn: data.currentTurn === 'player2', 
+          score: data.player2Score || 0,
+          name: currentPlayerType === 'player2' ? prev.name : (data.player2Name || prev.name)
+        }));
+        setGameOver(data.gameOver || false);
+
+        // ゲーム終了時の処理
+        if (data.gameOver && !gameOver) {
+          if (data.winner) {
+            setResult({ result: 'win', winner: data.winner });
+          } else {
+            setResult({ result: 'draw' });
+          }
+          setFinalBoard(data.board);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isOnlineMode, roomId, isProcessing, currentPlayerType, gameOver]);
+
+  // ゲーム状態をFirebaseに同期（オンラインモード時）
+  const syncGameState = (newBoard: CellState[][], newPlayer1: PlayerInfo, newPlayer2: PlayerInfo, newGameOver: boolean, newWinner?: string) => {
+    if (!isOnlineMode || !roomId) return;
+
+    const gameStateRef = ref(db, `rooms/${roomId}/gameState`);
+    set(gameStateRef, {
+      board: newBoard,
+      currentTurn: newPlayer1.isTurn ? 'player1' : 'player2',
+      player1Score: newPlayer1.score,
+      player2Score: newPlayer2.score,
+      player1Name: newPlayer1.name,
+      player2Name: newPlayer2.name,
+      gameOver: newGameOver,
+      winner: newWinner || null
+    });
+  };
 
   // タイマー: 自分の番の時だけ増える
   useEffect(() => {
@@ -65,8 +167,44 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = async (columnIndex: number) => {
     if (isProcessing || gameOver) return;
+    
+    // オンラインモード時は自分の番でないと操作不可
+    if (isOnlineMode) {
+      const playerInfo = getPlayerInfo();
+      
+      console.log('操作制限チェック:', {
+        playerInfo,
+        currentPlayerType,
+        player1Turn: player1.isTurn,
+        player2Turn: player2.isTurn,
+        currentTurn: player1.isTurn ? 'player1' : 'player2'
+      });
+      
+      // プレイヤータイプを確認
+      if (!currentPlayerType) {
+        console.log('操作を無視: プレイヤータイプが不明');
+        return;
+      }
+      
+      // 自分の番でない場合は操作を無視
+      const isMyTurn = (currentPlayerType === 'player1' && player1.isTurn) || 
+                       (currentPlayerType === 'player2' && player2.isTurn);
+      
+      if (!isMyTurn) {
+        console.log('操作を無視: 自分の番ではありません', {
+          currentPlayerType,
+          player1Turn: player1.isTurn,
+          player2Turn: player2.isTurn
+        });
+        return;
+      }
+      
+      console.log('操作許可: 自分の番です', { currentPlayerType });
+    }
+    
     const playerType: PlayerType = player1.isTurn ? 'player1' : 'player2';
     if (isColumnFull(gameBoard, columnIndex)) return;
+    
     // 一番下の空セルを探す
     let targetRow = -1;
     for (let row = gameBoard.length - 1; row >= 0; row--) {
@@ -76,144 +214,224 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
       }
     }
     if (targetRow === -1) return;
+    
     setIsProcessing(true);
-    // セルを置く
-    let newBoard = gameBoard.map((row, rIdx) =>
-      row.map((cell, cIdx) => (rIdx === targetRow && cIdx === columnIndex ? { state: 'normal', player: playerType } : cell))
-    );
-    setGameBoard(newBoard);
+    setHighlightedColumn(null); // コマを置いた直後にホバー解除
     
-    // 盤面が安定するまで両プレイヤーで連鎖判定
-    let comboing = true;
-    let localScore1 = 0;
-    let localScore2 = 0;
-    let comboChainCount = 0;
-    while (comboing) {
-      comboing = false;
-      comboChainCount++;
+    try {
+      // セルを置く
+      let newBoard = gameBoard.map((row, rIdx) =>
+        row.map((cell, cIdx) => (rIdx === targetRow && cIdx === columnIndex ? { state: 'normal', player: playerType } : cell))
+      );
+      setGameBoard(newBoard);
       
-      // COMBO!演出を表示
-      if (comboChainCount > 1) {
-        setComboCount(comboChainCount);
-        setComboVisible(true);
-        setTimeout(() => setComboVisible(false), 2000);
-      }
-
-      // 1. どちらのプレイヤーも4つ揃いがあるか判定
-      const combos = [
-        { type: 'player1' as PlayerType, result: checkForCombos(newBoard, 'player1') },
-        { type: 'player2' as PlayerType, result: checkForCombos(newBoard, 'player2') },
-      ];
-      // 2. 星セル化・スコア加算
-      let foundCombo = false;
-      combos.forEach(({ type, result }) => {
-        if (result.hasCombo) {
-          foundCombo = true;
-          newBoard = newBoard.map((row, rIdx) =>
-            row.map((cell, cIdx) =>
-              result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
-                ? { ...cell, state: 'star' }
-                : cell
-            )
-          );
-          setGameBoard(newBoard);
-          if (type === 'player1') localScore1++;
-          if (type === 'player2') localScore2++;
-        }
-      });
-      if (!foundCombo) break;
-      // 3. 星セルを一定時間後に消去
-      await new Promise(res => setTimeout(res, 700));
-      combos.forEach(({ result }) => {
-        if (result.hasCombo) {
-          newBoard = newBoard.map((row, rIdx) =>
-            row.map((cell, cIdx) =>
-              result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
-                ? { state: 'empty' }
-                : cell
-            )
-          );
-        }
-      });
-      setGameBoard(newBoard);
-      // 4. 重力適用
-      await new Promise(res => setTimeout(res, 300));
-      newBoard = applyGravity(newBoard);
-      setGameBoard(newBoard);
-      // 5. 少し待ってから次の連鎖判定
-      await new Promise(res => setTimeout(res, 300));
-      comboing = true;
-    }
-    
-    // スコア加算エフェクトを表示
-    if (localScore1 > 0) {
-      const effectId = effectIdRef.current++;
-      setScoreEffects(prev => [...prev, {
-        id: effectId,
-        isVisible: true,
-        score: localScore1,
-        playerType: 'player1',
-        position: { x: window.innerWidth * 0.25, y: window.innerHeight * 0.3 }
-      }]);
-      setTimeout(() => {
-        setScoreEffects(prev => prev.filter(effect => effect.id !== effectId));
-      }, 1500);
-    }
-    if (localScore2 > 0) {
-      const effectId = effectIdRef.current++;
-      setScoreEffects(prev => [...prev, {
-        id: effectId,
-        isVisible: true,
-        score: localScore2,
-        playerType: 'player2',
-        position: { x: window.innerWidth * 0.75, y: window.innerHeight * 0.3 }
-      }]);
-      setTimeout(() => {
-        setScoreEffects(prev => prev.filter(effect => effect.id !== effectId));
-      }, 1500);
-    }
-    
-    // スコア加算
-    if (localScore1 > 0) setPlayer1(prev => ({ ...prev, score: prev.score + localScore1 }));
-    if (localScore2 > 0) setPlayer2(prev => ({ ...prev, score: prev.score + localScore2 }));
-
-    // 3点先取勝利判定
-    const p1Win = checkWinCondition(player1.score + localScore1);
-    const p2Win = checkWinCondition(player2.score + localScore2);
-    if (p1Win || p2Win) {
-      setGameOver(true);
-      setResult({ result: 'win', winner: p1Win ? player1.name : player2.name });
-      setFinalBoard(newBoard);
-      // 勝利時の花火エフェクト
-      setFireworkVisible(true);
-      setTimeout(() => setFireworkVisible(false), 3000);
-      setIsProcessing(false);
-            return;
+      // 盤面が安定するまで両プレイヤーで連鎖判定
+      let comboing = true;
+      let localScore1 = 0;
+      let localScore2 = 0;
+      let comboChainCount = 0;
+      let tempPlayer1Score = player1.score;
+      let tempPlayer2Score = player2.score;
+      let comboWin = false;
+      let hasComboOccurred = false; // COMBOが実際に発生したかどうか
+      
+      while (comboing) {
+        comboing = false;
+        comboChainCount++;
+        
+        // 1. どちらのプレイヤーも4つ揃いがあるか判定
+        const combos = [
+          { type: 'player1' as PlayerType, result: checkForCombos(newBoard, 'player1') },
+          { type: 'player2' as PlayerType, result: checkForCombos(newBoard, 'player2') },
+        ];
+        // 2. 星セル化・スコア加算
+        let foundCombo = false;
+        combos.forEach(({ type, result }) => {
+          if (result.hasCombo) {
+            foundCombo = true;
+            hasComboOccurred = true; // COMBOが発生したことを記録
+            newBoard = newBoard.map((row, rIdx) =>
+              row.map((cell, cIdx) =>
+                result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
+                  ? { ...cell, state: 'star' }
+                  : cell
+              )
+            );
+            setGameBoard(newBoard);
+            if (type === 'player1') {
+              localScore1++;
+              tempPlayer1Score++;
+            }
+            if (type === 'player2') {
+              localScore2++;
+              tempPlayer2Score++;
+            }
+            
+            // COMBO中に3点到達したら即勝利
+            if (checkWinCondition(tempPlayer1Score) || checkWinCondition(tempPlayer2Score)) {
+              comboWin = true;
+              const winner = checkWinCondition(tempPlayer1Score) ? player1.name : player2.name;
+              setGameOver(true);
+              setResult({ result: 'win', winner });
+              setFinalBoard(newBoard);
+              setFireworkVisible(true);
+              setTimeout(() => setFireworkVisible(false), 3000);
+              syncGameState(newBoard, 
+                { ...player1, score: tempPlayer1Score, isTurn: false }, 
+                { ...player2, score: tempPlayer2Score, isTurn: false }, 
+                true, winner);
+              setIsProcessing(false);
+              return;
+            }
           }
-    // 引き分け判定
-    if (newBoard.every(row => row.every(cell => cell.state !== 'empty'))) {
-      setGameOver(true);
-      setResult({ result: 'draw' });
-      setFinalBoard(newBoard);
-      setIsProcessing(false);
+        });
+        if (!foundCombo) break;
+        
+        // COMBO!演出を表示（2回目以降のCOMBOで、実際にCOMBOが発生した場合のみ）
+        if (comboChainCount > 1 && hasComboOccurred) {
+          setComboCount(comboChainCount);
+          setComboVisible(true);
+          setTimeout(() => setComboVisible(false), 2000);
+        }
+
+        // 3. 星セルを一定時間後に消去
+        await new Promise(res => setTimeout(res, 700));
+        combos.forEach(({ result }) => {
+          if (result.hasCombo) {
+            newBoard = newBoard.map((row, rIdx) =>
+              row.map((cell, cIdx) =>
+                result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
+                  ? { state: 'empty' }
+                  : cell
+              )
+            );
+          }
+        });
+        setGameBoard(newBoard);
+        // 4. 重力適用
+        await new Promise(res => setTimeout(res, 300));
+        newBoard = applyGravity(newBoard);
+        setGameBoard(newBoard);
+        // 5. 少し待ってから次の連鎖判定
+        await new Promise(res => setTimeout(res, 300));
+        comboing = true;
+      }
+      
+      // スコア加算エフェクトを表示
+      if (localScore1 > 0) {
+        const effectId = effectIdRef.current++;
+        setScoreEffects(prev => [...prev, {
+          id: effectId,
+          isVisible: true,
+          score: localScore1,
+          playerType: 'player1',
+          position: { x: window.innerWidth * 0.25, y: window.innerHeight * 0.3 }
+        }]);
+        setTimeout(() => {
+          setScoreEffects(prev => prev.filter(effect => effect.id !== effectId));
+        }, 1500);
+      }
+      if (localScore2 > 0) {
+        const effectId = effectIdRef.current++;
+        setScoreEffects(prev => [...prev, {
+          id: effectId,
+          isVisible: true,
+          score: localScore2,
+          playerType: 'player2',
+          position: { x: window.innerWidth * 0.75, y: window.innerHeight * 0.3 }
+        }]);
+        setTimeout(() => {
+          setScoreEffects(prev => prev.filter(effect => effect.id !== effectId));
+        }, 1500);
+      }
+      
+      // スコア加算
+      const newPlayer1 = { ...player1, score: player1.score + localScore1, isTurn: !player1.isTurn };
+      const newPlayer2 = { ...player2, score: player2.score + localScore2, isTurn: !player2.isTurn };
+      setPlayer1(newPlayer1);
+      setPlayer2(newPlayer2);
+
+      // 3点先取勝利判定
+      const p1Win = checkWinCondition(newPlayer1.score);
+      const p2Win = checkWinCondition(newPlayer2.score);
+      if (p1Win || p2Win) {
+        setGameOver(true);
+        const winner = p1Win ? player1.name : player2.name;
+        setResult({ result: 'win', winner });
+        setFinalBoard(newBoard);
+        // 勝利時の花火エフェクト
+        setFireworkVisible(true);
+        setTimeout(() => setFireworkVisible(false), 3000);
+        syncGameState(newBoard, newPlayer1, newPlayer2, true, winner);
+        setIsProcessing(false);
         return;
       }
-    // ターン交代
-      setPlayer1(prev => ({ ...prev, isTurn: !prev.isTurn }));
-      setPlayer2(prev => ({ ...prev, isTurn: !prev.isTurn }));
+        
+      // 引き分け判定
+      if (newBoard.every(row => row.every(cell => cell.state !== 'empty'))) {
+        setGameOver(true);
+        setResult({ result: 'draw' });
+        setFinalBoard(newBoard);
+        syncGameState(newBoard, newPlayer1, newPlayer2, true);
+        setIsProcessing(false);
+        return;
+      }
+
+      // オンラインモード時はFirebaseに同期
+      if (isOnlineMode) {
+        syncGameState(newBoard, newPlayer1, newPlayer2, false);
+      }
+
       setIsProcessing(false);
-    };
+    } catch (error) {
+      console.error('ゲーム処理エラー:', error);
+      setIsProcessing(false);
+    }
+  };
     
   // ハイライト
-  const handleColumnHover = (col: number) => { if (!isProcessing && !gameOver) setHighlightedColumn(col); };
-  const handleColumnLeave = () => { setHighlightedColumn(null); };
+  const handleColumnHover = (col: number) => {
+    if (isProcessing || gameOver) return;
+    if (isOnlineMode) {
+      // 自分の番でなければ何もしない
+      const playerInfo = getPlayerInfo();
+      const isMyTurn = (currentPlayerType === 'player1' && player1.isTurn) || 
+                       (currentPlayerType === 'player2' && player2.isTurn);
+      if (!isMyTurn) return;
+    }
+    setHighlightedColumn(col);
+  };
+  const handleColumnLeave = () => {
+    if (isProcessing || gameOver) return;
+    if (isOnlineMode) {
+      const playerInfo = getPlayerInfo();
+      const isMyTurn = (currentPlayerType === 'player1' && player1.isTurn) || 
+                       (currentPlayerType === 'player2' && player2.isTurn);
+      if (!isMyTurn) return;
+    }
+    setHighlightedColumn(null);
+  };
 
   // タイマー表示
   const formatTime = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 
   // 再戦ボタン押下時
   const handleRematch = () => {
+    // オンラインモード時はルームの対戦待機画面に移動（ルームID付き）
+    if (isOnlineMode && roomId) {
+      // ready状態をリセットしてから遷移
+      const readyRef = ref(db, `rooms/${roomId}/ready`);
+      set(readyRef, { player1: false, player2: false });
+      router.push(`/waitingForOpponent?roomId=${roomId}`);
+      return;
+    }
+    // オフライン・AI戦の場合は従来通り
     router.push('/waitingForOpponent');
+  };
+
+  // タイトルに戻るボタン押下時
+  const handleGoHome = () => {
+    router.push('/');
   };
 
   // UI
@@ -223,33 +441,33 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
       <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-emerald-50 via-emerald-100 to-white" style={{ opacity: 0.5, zIndex: 0 }} />
       <div className="relative z-10 w-full flex flex-col items-center">
         {/* タイトル */}
-        <div className="w-full flex flex-col items-center mt-8 mb-2">
-          <div className="text-4xl font-extrabold text-black tracking-tight drop-shadow-sm">connect4plus</div>
-          <div className="text-sm text-gray-500 mt-1 font-semibold">次世代方立体四目並べ</div>
+        <div className="w-full flex flex-col items-center mt-4 mb-2">
+          <div className="text-xl sm:text-2xl font-bold text-black tracking-tight drop-shadow-sm">connect4plus</div>
+          <div className="text-xs sm:text-sm text-gray-500 mt-1 font-semibold">次世代方立体四目並べ</div>
         </div>
         {/* User情報 */}
-        <div className="flex flex-row justify-center items-end gap-24 w-full max-w-2xl mt-4 mb-8">
+        <div className="flex flex-row justify-center items-end gap-4 sm:gap-12 w-full max-w-2xl mt-2 mb-4">
           {/* Player1 */}
-          <div className={`flex flex-col items-center transition-all duration-300 ${player1.isTurn ? 'ring-4 ring-emerald-400 shadow-xl bg-white' : 'bg-white/60'} rounded-2xl px-4 py-2`}> 
-            <img src={player1.avatar} className="w-20 h-20 rounded-full bg-white shadow-lg border-2 border-emerald-200" />
-            <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2">
+          <div className={`flex flex-col items-center transition-all duration-300 ${player1.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-2 py-1 sm:px-3 sm:py-2`}> 
+            <img src={player1.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
+            <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
               {player1.name}
-              <span className="inline-block w-4 h-4 rounded-full border border-gray-300" style={{ background: '#4D6869' }} title="あなたのコマ色" />
+              <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: '#4D6869' }} title="あなたのコマ色" />
             </div>
-            <div className="text-gray-500 text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
-            <div className="w-24 mt-2"><ScoreGauge score={player1.score} maxScore={3} playerType="player1" /></div>
+            <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={3} playerType="player1" /></div>
           </div>
           {/* VS */}
-          <div className="text-3xl font-extrabold text-gray-400 mb-10 select-none">VS</div>
+          <div className="text-lg sm:text-2xl font-extrabold text-gray-400 mb-6 select-none">VS</div>
           {/* Player2 */}
-          <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-4 ring-emerald-400 shadow-xl bg-white' : 'bg-white/60'} rounded-2xl px-4 py-2`}>
-            <img src={player2.avatar} className="w-20 h-20 rounded-full bg-white shadow-lg border-2 border-emerald-200" />
-            <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2">
+          <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-2 py-1 sm:px-3 sm:py-2`}>
+            <img src={player2.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
+            <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
               {player2.name}
-              <span className="inline-block w-4 h-4 rounded-full border border-gray-300" style={{ background: '#55B89C' }} title="あなたのコマ色" />
+              <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: '#55B89C' }} title="あなたのコマ色" />
             </div>
-            <div className="text-gray-500 text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
-            <div className="w-24 mt-2"><ScoreGauge score={player2.score} maxScore={3} playerType="player2" /></div>
+            <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={3} playerType="player2" /></div>
           </div>
         </div>
         {/* ゲーム盤面 */}
@@ -267,7 +485,12 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
           </div>
           {/* Presented by & ボタン群 */}
           <div className="flex flex-col items-center w-full mt-8">
-            <div className="text-sm text-gray-500 font-semibold mb-4">Presented by Kotaro Design Lab.</div>
+            {/* ルームID表示（オンラインモード時のみ） */}
+            {isOnlineMode && roomId && (
+              <div className="text-sm text-gray-400 font-semibold mb-4">
+                ルームID: <span className="text-blue-500 font-bold">{roomId}</span>
+              </div>
+            )}
             <div className="flex gap-4">
               <button
                 onClick={() => setShowRules(true)}
@@ -275,41 +498,59 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
               >
                 📖 ルール説明
               </button>
-              <button
-                onClick={handleRematch}
-                className="px-6 py-2 bg-emerald-400 text-white rounded-full text-base font-semibold shadow hover:bg-emerald-500 transition-colors"
-              >
-                もう一度遊ぶ
-              </button>
+              {/* もう一度遊ぶボタンは対戦中は非表示 */}
+              {gameOver && (
+                <button
+                  onClick={handleRematch}
+                  className="px-6 py-2 bg-emerald-400 text-white rounded-full text-base font-semibold shadow hover:bg-emerald-500 transition-colors"
+                >
+                  もう一度遊ぶ
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Presented byを一番下に移動 */}
+        <div className="w-full flex justify-center mt-8 mb-4">
+          <div className="text-sm text-gray-500 font-semibold">Presented by Kotaro Design Lab.</div>
+        </div>
         {/* 結果モーダル */}
         {gameOver && result && finalBoard && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="relative bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center min-w-[340px] min-h-[340px]">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+            <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 flex flex-col items-center w-full max-w-xs sm:max-w-md min-h-[280px] sm:min-h-[340px]">
               {/* 勝者アバターを大きく前面に */}
               {result.result === 'win' && (
                 <img
                   src={result.winner === player1.name ? player1.avatar : player2.avatar}
-                  className="w-40 h-40 rounded-full shadow-2xl border-4 border-emerald-400 -mt-24 mb-4 z-10"
-                  style={{ objectFit: 'cover', position: 'relative', top: '-40px' }}
+                  className="w-24 h-24 sm:w-40 sm:h-40 rounded-full shadow-2xl border-4 border-emerald-400 -mt-16 sm:-mt-24 mb-2 sm:mb-4 z-10"
+                  style={{ objectFit: 'cover', position: 'relative', top: '-20px' }}
                   alt="Winner Avatar"
                 />
               )}
-              <div className="text-4xl font-extrabold text-emerald-500 mb-2">
+              <div className="text-2xl sm:text-4xl font-extrabold text-emerald-500 mb-2 text-center">
                 {result.result === 'win' ? `${result.winner} の勝ち！` : '引き分け'}
               </div>
-              <div className="w-full flex justify-center mb-4">
-                <GameGrid board={finalBoard} />
+              <div className="w-full flex justify-center mb-3 sm:mb-4">
+                <div className="scale-75 sm:scale-100">
+                  <GameGrid board={finalBoard} />
+                </div>
               </div>
-              <button
-                onClick={handleRematch}
-                className="px-8 py-2 bg-emerald-400 text-white rounded-full text-lg font-semibold shadow hover:bg-emerald-500 transition-colors mt-2"
-              >
-                もう一度遊ぶ
-              </button>
-        </div>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 sm:mt-4 w-full">
+                <button
+                  onClick={handleGoHome}
+                  className="px-4 sm:px-8 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-gray-300 transition-colors"
+                >
+                  タイトルに戻る
+                </button>
+                <button
+                  onClick={handleRematch}
+                  className="px-4 sm:px-8 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-emerald-500 transition-colors"
+                >
+                  もう一度遊ぶ
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -324,6 +565,7 @@ export default function GamePlayScreen({ player1: initialPlayer1, player2: initi
 
       {/* ルール説明ポップアップ */}
       <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
+
     </main>
   );
 } 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { AILevel, getAllAICharacters, getAICharacter } from '../utils/aiLogic';
+import { generateRoomId, createRoom, joinRoom, checkRoomExists, testFirebaseConnection } from '../utils/firebase';
 import RulesPopup from '../components/RulesPopup';
 import AICharacterPopup from '../components/AICharacterPopup';
 
@@ -13,7 +14,38 @@ export default function HomePage() {
   const [showRules, setShowRules] = useState(false);
   const [showCharacterPopup, setShowCharacterPopup] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<AILevel | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [firebaseConnected, setFirebaseConnected] = useState<boolean | null>(null);
   const router = useRouter();
+
+  // 招待URLから来た場合は/joinRoomにリダイレクト
+  useEffect(() => {
+    if (router.isReady && router.query.roomId && typeof router.query.roomId === 'string') {
+      router.replace(`/joinRoom?roomId=${router.query.roomId}`);
+    }
+  }, [router.isReady, router.query.roomId]);
+
+  // Firebase接続テスト
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        const connected = await testFirebaseConnection();
+        setFirebaseConnected(connected);
+        console.log('Firebase接続状態:', connected);
+      } catch (error) {
+        console.error('Firebase接続テストエラー:', error);
+        setFirebaseConnected(false);
+      }
+    };
+    testConnection();
+  }, []);
+
+  // URLパラメータからルームIDを取得
+  useEffect(() => {
+    if (router.query.roomId && typeof router.query.roomId === 'string') {
+      setRoomId(router.query.roomId.toUpperCase());
+    }
+  }, [router.query.roomId]);
 
   // アバター画像パス
   const graycatMuscle = '/assets/Avater/PosingAvater/graycat_muscle.png';
@@ -23,20 +55,43 @@ export default function HomePage() {
   const rabbitMuscle = '/assets/Avater/PosingAvater/rabbit_muscle.png';
   const dragonMuscle = '/assets/Avater/PosingAvater/dragon_muscle.png';
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
     if (player1Name.trim()) {
-      // ルーム作成画面に遷移
-      router.push('/roomBuilding');
+      setIsLoading(true);
+      try {
+        const newRoomId = generateRoomId();
+        await createRoom(newRoomId, player1Name.trim());
+        console.log('ルーム作成完了:', { roomId: newRoomId, playerName: player1Name.trim() });
+        // まずroomBuildingに遷移
+        router.push(`/roomBuilding?roomId=${newRoomId}&player1Name=${encodeURIComponent(player1Name.trim())}`);
+      } catch (error) {
+        alert('ルーム作成エラー: ' + (error instanceof Error ? error.message : String(error)));
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleJoinRoom = () => {
+  const handleJoinRoom = async () => {
     if (roomId.trim() && player2Name.trim()) {
-      // 仮実装: ルームIDが'KAKOTA'なら存在、他は存在しない
-      if (roomId.trim() === 'KAKOTA') {
-        router.push(`/waitingForOpponent?roomId=${roomId.trim()}&player2Name=${player2Name.trim()}`);
-      } else {
-        alert('ルームが存在していません。');
+      setIsLoading(true);
+      try {
+        const exists = await checkRoomExists(roomId.trim());
+        if (!exists) {
+          alert('ルームが存在していません。');
+          return;
+        }
+        
+        await joinRoom(roomId.trim(), player2Name.trim());
+        router.push(`/waitingForOpponent?roomId=${roomId.trim()}&player2Name=${encodeURIComponent(player2Name.trim())}`);
+      } catch (error) {
+        console.error('ルーム参加エラー:', error);
+        if (error instanceof Error) {
+          alert(error.message);
+        } else {
+          alert('ルーム参加に失敗しました。もう一度お試しください。');
+        }
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -60,6 +115,12 @@ export default function HomePage() {
         <div className="mb-2">
           <h1 className="text-4xl font-extrabold text-black text-center tracking-tight drop-shadow-sm">connect4plus</h1>
           <p className="text-lg text-gray-500 font-semibold text-center mt-1">次世代方立体四目並べ</p>
+          {/* Firebase接続状態表示 */}
+          {firebaseConnected !== null && (
+            <div className={`text-sm font-semibold text-center mt-2 ${firebaseConnected ? 'text-green-600' : 'text-red-600'}`}>
+              {firebaseConnected ? '🟢 オンライン接続済み' : '🔴 オフライン接続エラー'}
+            </div>
+          )}
         </div>
 
         {/* ルール説明ボタン */}
@@ -88,10 +149,10 @@ export default function HomePage() {
             />
             <button
               onClick={handleCreateRoom}
-              disabled={!player1Name.trim()}
+              disabled={!player1Name.trim() || isLoading || firebaseConnected === false}
               className="w-full max-w-xs h-12 bg-gradient-to-r from-lime-400 to-emerald-400 text-white text-lg font-extrabold tracking-wide rounded-xl shadow hover:scale-105 active:scale-95 hover:from-lime-500 hover:to-emerald-500 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed drop-shadow-md"
             >
-              ルームを作成する。
+              {isLoading ? '作成中...' : firebaseConnected === false ? '接続エラー' : 'ルームを作成する。'}
             </button>
           </div>
         </div>
@@ -104,7 +165,7 @@ export default function HomePage() {
             <input
               type="text"
               value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
+              onChange={(e) => setRoomId(e.target.value.toUpperCase())}
               placeholder="RoomID"
               className="w-full max-w-xs h-12 bg-gray-50 rounded-xl border-2 border-gray-200 px-4 text-base font-semibold focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 transition placeholder-gray-400 mb-2"
             />
@@ -122,10 +183,10 @@ export default function HomePage() {
             />
             <button
               onClick={handleJoinRoom}
-              disabled={!roomId.trim() || !player2Name.trim()}
+              disabled={!roomId.trim() || !player2Name.trim() || isLoading || firebaseConnected === false}
               className="w-full max-w-xs h-12 bg-gradient-to-r from-lime-400 to-emerald-400 text-white text-lg font-extrabold tracking-wide rounded-xl shadow hover:scale-105 active:scale-95 hover:from-lime-500 hover:to-emerald-500 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed drop-shadow-md"
             >
-              ゲームに参加する。
+              {isLoading ? '参加中...' : firebaseConnected === false ? '接続エラー' : 'ゲームに参加する。'}
             </button>
           </div>
         </div>
@@ -199,20 +260,21 @@ export default function HomePage() {
             </button>
           </div>
         </div>
+
+        {/* ルール説明ポップアップ */}
+        {showRules && (
+          <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
+        )}
+
+        {/* AIキャラクター詳細ポップアップ */}
+        {showCharacterPopup && selectedCharacter && (
+          <AICharacterPopup
+            isVisible={showCharacterPopup}
+            character={getAICharacter(selectedCharacter)!}
+            onClose={() => setShowCharacterPopup(false)}
+          />
+        )}
       </div>
-      <div className="text-center text-gray-500 text-base font-semibold mb-4 mt-8 select-none">
-        Presented by Kotaro Design Lab.
-      </div>
-      
-      {/* ルール説明ポップアップ */}
-      <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
-      
-      {/* AIキャラクター詳細ポップアップ */}
-      <AICharacterPopup 
-        isVisible={showCharacterPopup} 
-        onClose={() => setShowCharacterPopup(false)} 
-        character={selectedCharacter ? getAICharacter(selectedCharacter) || null : null}
-      />
     </div>
   );
 } 

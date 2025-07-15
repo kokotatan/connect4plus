@@ -2,17 +2,25 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useRouter } from 'next/router';
 
-const FIXED_ROOM_ID = 'KAKOTA';
-const DEFAULT_ORIGIN = 'https://example.com';
-
 export default function RoomCreatedScreen() {
   const [copied, setCopied] = useState(false);
-  const [inviteUrl, setInviteUrl] = useState(`${DEFAULT_ORIGIN}/join?roomId=${FIXED_ROOM_ID}`);
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [roomId, setRoomId] = useState('');
   const router = useRouter();
+  const { roomId: urlRoomId, player1Name } = router.query;
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setInviteUrl(`${window.location.origin}/join?roomId=${FIXED_ROOM_ID}`);
-  }, []);
+    if (!router.isReady) return;
+    if (!urlRoomId || !player1Name) {
+      router.replace('/');
+      return;
+    }
+    setRoomId(urlRoomId as string);
+    const newInviteUrl = `${window.location.origin}/?roomId=${urlRoomId}`;
+    setInviteUrl(newInviteUrl);
+    setReady(true);
+  }, [urlRoomId, player1Name, router]);
 
   const handleCopyUrl = () => {
     if (inviteUrl) {
@@ -55,10 +63,22 @@ export default function RoomCreatedScreen() {
   }
 
   const handleStartGame = () => {
-    setTimeout(() => {
-      router.push(`/waitingForOpponent?roomId=${FIXED_ROOM_ID}`);
-    }, 800);
+    if (roomId && player1Name) {
+      router.push(`/waitingForOpponent?roomId=${roomId}&player1Name=${player1Name}`);
+    } else {
+      router.push('/');
+    }
   };
+
+  if (!ready) {
+    return (
+      <Layout>
+        <div className="w-full flex flex-col items-center justify-center min-h-screen">
+          <div className="text-lg font-semibold text-gray-600">読み込み中...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -76,7 +96,7 @@ export default function RoomCreatedScreen() {
         <div className="text-black text-xs font-semibold text-center leading-snug mb-1">ルームが作成されました。</div>
         <div className="flex items-center justify-center gap-2 mb-2">
           <span className="text-gray-500 text-xs font-semibold leading-snug">ルームID:</span>
-          <span className="text-blue-500 text-xs font-semibold leading-snug">{FIXED_ROOM_ID}</span>
+          <span className="text-blue-500 text-xs font-semibold leading-snug">{roomId}</span>
         </div>
         {/* 招待URL＋コピー */}
         <div className="w-full flex flex-col gap-1 mb-2">
