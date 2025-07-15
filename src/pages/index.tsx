@@ -52,8 +52,6 @@ export default function HomePage() {
   const graycatTraining = '/assets/Avater/PosingAvater/graycat_training.png';
   const tigerMuscle = '/assets/Avater/PosingAvater/tiger_muscle.png';
   const tigerTraining = '/assets/Avater/PosingAvater/tiger_training.png';
-  const rabbitMuscle = '/assets/Avater/PosingAvater/rabbit_muscle.png';
-  const dragonMuscle = '/assets/Avater/PosingAvater/dragon_muscle.png';
 
   const handleCreateRoom = async () => {
     if (player1Name.trim()) {
@@ -202,7 +200,7 @@ export default function HomePage() {
                 const selectedChar = getAICharacter(aiLevel);
                 return (
                   <img 
-                    src={selectedChar?.avatar || dragonMuscle} 
+                    src={selectedChar?.avatar || graycatMuscle} 
                     alt="AI" 
                     className="w-28 h-32 object-contain -mr-2" 
                   />
