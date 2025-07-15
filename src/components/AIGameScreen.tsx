@@ -387,36 +387,36 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
       <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-emerald-50 via-emerald-100 to-white" style={{ opacity: 0.5, zIndex: 0 }} />
       <div className="relative z-10 w-full flex flex-col items-center">
         {/* タイトル */}
-        <div className="w-full flex flex-col items-center mt-8 mb-2">
-          <div className="text-4xl font-extrabold text-black tracking-tight drop-shadow-sm">connect4plus</div>
-          <div className="text-sm text-gray-500 mt-1 font-semibold">次世代方立体四目並べ</div>
+        <div className="w-full flex flex-col items-center mt-4 mb-2">
+          <div className="text-xl sm:text-2xl font-bold text-black tracking-tight drop-shadow-sm">connect4plus</div>
+          <div className="text-xs sm:text-sm text-gray-500 mt-1 font-semibold">次世代方立体四目並べ</div>
         </div>
         
         {/* User情報 */}
-        <div className="flex flex-row justify-center items-end gap-24 w-full max-w-2xl mt-4 mb-8 relative">
+        <div className="flex flex-row justify-center items-end gap-4 sm:gap-12 w-full max-w-2xl mt-2 mb-4">
           {/* Player1 (プレイヤー) */}
-          <div className={`flex flex-col items-center transition-all duration-300 ${player1.isTurn ? 'ring-4 ring-emerald-400 shadow-xl bg-white' : 'bg-white/60'} rounded-2xl px-4 py-2`}> 
-            <img src={player1.avatar} className="w-20 h-20 rounded-full bg-white shadow-lg border-2 border-emerald-200" />
-            <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2 max-w-32">
+          <div className={`flex flex-col items-center transition-all duration-300 ${player1.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-2 py-1 sm:px-3 sm:py-2`}> 
+            <img src={player1.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
+            <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
               <span className="truncate" title={player1.name}>{player1.name}</span>
-              <span className="inline-block w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#4D6869' }} title="あなたのコマ色" />
+              <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#4D6869' }} title="あなたのコマ色" />
             </div>
-            <div className="text-gray-500 text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
-            <div className="w-24 mt-2"><ScoreGauge score={player1.score} maxScore={3} playerType={player1.type} /></div>
+            <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={3} playerType={player1.type} /></div>
           </div>
           
           {/* VS */}
-          <div className="text-3xl font-extrabold text-gray-400 mb-10 select-none">VS</div>
+          <div className="text-lg sm:text-2xl font-extrabold text-gray-400 mb-6 select-none">VS</div>
           
           {/* Player2 (AI) */}
-          <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-4 ring-emerald-400 shadow-xl bg-white' : 'bg-white/60'} rounded-2xl px-4 py-2 relative`}>
-            <img src={player2.avatar} className="w-20 h-20 rounded-full bg-white shadow-lg border-2 border-emerald-200" />
-            <div className="text-lg font-bold mt-2 text-gray-800 flex items-center gap-2 max-w-32">
+          <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-2 py-1 sm:px-3 sm:py-2 relative`}>
+            <img src={player2.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
+            <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
               <span className="truncate" title={player2.name}>{player2.name}</span>
-              <span className="inline-block w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#55B89C' }} title="AIのコマ色" />
+              <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#55B89C' }} title="AIのコマ色" />
             </div>
-            <div className="text-gray-500 text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
-            <div className="w-24 mt-2"><ScoreGauge score={player2.score} maxScore={3} playerType={player2.type} /></div>
+            <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={3} playerType={player2.type} /></div>
             {/* AI思考中ポップアップ */}
             {aiThinking && (
               <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 px-4 py-2 bg-white border-2 border-emerald-300 rounded-xl shadow-lg animate-pulse flex items-center gap-2">
