@@ -137,7 +137,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = async (columnIndex: number) => {
     if (isProcessing || gameOver) return;
-    const playerType: PlayerType = player1.isTurn ? 'player1' : 'player2';
+    const playerType: PlayerType = player1.isTurn ? player1.type : player2.type;
     if (isColumnFull(gameBoard, columnIndex)) return;
     
     // 一番下の空セルを探す
@@ -173,8 +173,8 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
       comboChainCount++;
       // 1. どちらのプレイヤーも4つ揃いがあるか判定
       const combos = [
-        { type: 'player1' as PlayerType, result: checkForCombos(newBoard, 'player1') },
-        { type: 'player2' as PlayerType, result: checkForCombos(newBoard, 'player2') },
+        { type: player1.type as PlayerType, result: checkForCombos(newBoard, player1.type) },
+        { type: player2.type as PlayerType, result: checkForCombos(newBoard, player2.type) },
       ];
       // 2. 星セル化・スコア加算
       let foundCombo = false;
