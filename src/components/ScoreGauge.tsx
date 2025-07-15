@@ -1,14 +1,17 @@
 import React from 'react';
+import { PlayerType } from '../types/game';
 
 type ScoreGaugeProps = {
   score: number;
   maxScore: number;
-  playerType: 'player1' | 'player2';
+  playerType: PlayerType;
 };
 
 export const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, maxScore, playerType }) => {
   // コマ色
-  const playerColor = playerType === 'player1' ? '#4D6869' : '#55B89C';
+  let playerColor = '#4D6869';
+  if (playerType === 'tiger') playerColor = '#55B89C';
+  if (playerType === 'ai') playerColor = '#F59E42'; // AI用の色（例）
   // ピクセルアート風の枠色
   const borderColor = '#222';
 

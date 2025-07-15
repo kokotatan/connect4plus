@@ -378,7 +378,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
               <span className="inline-block w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#4D6869' }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
-            <div className="w-24 mt-2"><ScoreGauge score={player1.score} maxScore={3} playerType="player1" /></div>
+            <div className="w-24 mt-2"><ScoreGauge score={player1.score} maxScore={3} playerType={player1.type} /></div>
           </div>
           
           {/* VS */}
@@ -392,7 +392,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
               <span className="inline-block w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#55B89C' }} title="AIのコマ色" />
             </div>
             <div className="text-gray-500 text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
-            <div className="w-24 mt-2"><ScoreGauge score={player2.score} maxScore={3} playerType="player2" /></div>
+            <div className="w-24 mt-2"><ScoreGauge score={player2.score} maxScore={3} playerType={player2.type} /></div>
             {/* AI思考中ポップアップ */}
             {aiThinking && (
               <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 px-4 py-2 bg-white border-2 border-emerald-300 rounded-xl shadow-lg animate-pulse flex items-center gap-2">
