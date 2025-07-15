@@ -464,33 +464,35 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
         
         {/* 結果モーダル */}
         {gameOver && result && finalBoard && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="relative bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center min-w-[340px] min-h-[340px]">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+            <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 flex flex-col items-center w-full max-w-xs sm:max-w-md min-h-[280px] sm:min-h-[340px]">
               {/* 勝者アバターを大きく前面に */}
               {result.result === 'win' && (
                 <img
                   src={result.winner === player1.name ? player1.avatar : player2.avatar}
-                  className="w-40 h-40 rounded-full shadow-2xl border-4 border-emerald-400 -mt-24 mb-4 z-10"
-                  style={{ objectFit: 'cover', position: 'relative', top: '-40px' }}
+                  className="w-24 h-24 sm:w-40 sm:h-40 rounded-full shadow-2xl border-4 border-emerald-400 -mt-16 sm:-mt-24 mb-2 sm:mb-4 z-10"
+                  style={{ objectFit: 'cover', position: 'relative', top: '-20px' }}
                   alt="Winner Avatar"
                 />
               )}
-              <div className="text-4xl font-extrabold text-emerald-500 mb-2">
+              <div className="text-2xl sm:text-4xl font-extrabold text-emerald-500 mb-2 text-center">
                 {result.result === 'win' ? `${result.winner} の勝ち！` : '引き分け'}
               </div>
-              <div className="w-full flex justify-center mb-4">
-                <GameGrid board={finalBoard} />
+              <div className="w-full flex justify-center mb-3 sm:mb-4">
+                <div className="scale-75 sm:scale-100">
+                  <GameGrid board={finalBoard} />
+                </div>
               </div>
-              <div className="flex flex-row gap-4 mt-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 sm:mt-4 w-full">
                 <button
                   onClick={() => router.push('/')}
-                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold shadow hover:bg-gray-300 transition-colors"
+                  className="px-4 sm:px-8 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-gray-300 transition-colors"
                 >
                   ホームに戻る
                 </button>
                 <button
                   onClick={handleStartWithNewStrength}
-                  className="px-6 py-2 bg-emerald-400 text-white rounded-full font-semibold shadow hover:bg-emerald-500 transition-colors"
+                  className="px-4 sm:px-8 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-emerald-500 transition-colors"
                 >
                   もう一度同じ強さで再戦
                 </button>
@@ -501,30 +503,30 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
 
         {/* 強さ選択ポップアップ */}
         {showStrengthPopup && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center min-w-[500px] max-h-[80vh] overflow-y-auto">
-              <div className="text-2xl font-bold text-gray-800 mb-6">AIキャラクターを選択</div>
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-40 p-4">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 flex flex-col items-center w-full max-w-xs sm:max-w-md max-h-[80vh] overflow-y-auto">
+              <div className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">AIキャラクターを選択</div>
               
-              <div className="grid grid-cols-1 gap-4 w-full mb-6">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 w-full mb-4 sm:mb-6">
                 {getAllAICharacters().map((character) => (
                   <button
                     key={character.id}
                     onClick={() => setSelectedStrength(character.id)}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                    className={`p-3 sm:p-4 rounded-xl border-2 transition-all text-left ${
                       selectedStrength === character.id
                         ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
                       <img 
                         src={character.avatar} 
                         alt={character.name}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-gray-300"
                       />
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="font-semibold text-lg">{character.name}</div>
+                          <div className="font-semibold text-base sm:text-lg">{character.name}</div>
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                             character.level === '初級' ? 'bg-green-100 text-green-700' :
                             character.level === '中級' ? 'bg-blue-100 text-blue-700' :
@@ -534,7 +536,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
                             {character.level}
                           </span>
                         </div>
-                        <div className="text-sm opacity-75 font-semibold">「{character.nickname}」</div>
+                        <div className="text-xs sm:text-sm opacity-75 font-semibold">「{character.nickname}」</div>
                         <div className="text-xs opacity-75 mt-1">{character.levelDescription}</div>
                       </div>
                     </div>
@@ -542,16 +544,16 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
                 ))}
               </div>
               
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full">
                 <button
                   onClick={() => setShowStrengthPopup(false)}
-                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full font-semibold shadow hover:bg-gray-300 transition-colors"
+                  className="px-4 sm:px-6 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-base font-semibold shadow hover:bg-gray-300 transition-colors"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={handleStartWithNewStrength}
-                  className="px-6 py-2 bg-emerald-400 text-white rounded-full font-semibold shadow hover:bg-emerald-500 transition-colors"
+                  className="px-4 sm:px-6 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-base font-semibold shadow hover:bg-emerald-500 transition-colors"
                 >
                   ゲーム開始
                 </button>
