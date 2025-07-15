@@ -17,27 +17,31 @@ export default function ScoreGauge({ score, maxScore, playerType }: ScoreGaugePr
 
   // 全体幅を固定（80px）
   const totalWidth = 80;
-  // 区画間のギャップ（2px）
-  const gap = 2;
-  // 区画幅を計算（全体幅からギャップ分を引いて分割）
-  const blockWidth = (totalWidth - gap * (maxScore - 1)) / maxScore;
+  const height = 18;
 
   return (
-    <div className="flex items-center" style={{ width: totalWidth }}>
+    <div 
+      className="flex items-center" 
+      style={{ 
+        width: totalWidth, 
+        height: height,
+        border: `2px solid ${borderColor}`,
+        borderRadius: 3,
+        boxShadow: '0 1px #888',
+        imageRendering: 'pixelated',
+        overflow: 'hidden'
+      }}
+    >
       {[...Array(maxScore)].map((_, i) => (
         <div
           key={i}
           style={{
-            width: blockWidth,
-            height: 18,
+            width: totalWidth / maxScore,
+            height: '100%',
             background: i < score ? playerColor : '#fff',
-            border: `2px solid ${borderColor}`,
+            borderRight: i < maxScore - 1 ? `1px solid ${borderColor}` : 'none',
             boxSizing: 'border-box',
-            borderRadius: 3,
-            marginRight: i < maxScore - 1 ? gap : 0, // 最後の区画以外にギャップを追加
-            boxShadow: '0 1px #888',
-            imageRendering: 'pixelated',
-            flexShrink: 0, // 区画が縮まないようにする
+            flexShrink: 0,
           }}
         />
       ))}

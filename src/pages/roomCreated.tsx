@@ -149,6 +149,7 @@ export default function RoomCreatedScreen() {
           </div>
         </div>
       </div>
+      
     </Layout>
   );
 } 

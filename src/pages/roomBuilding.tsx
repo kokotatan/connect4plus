@@ -30,6 +30,7 @@ export default function RoomBuildingScreen() {
       <div className="flex justify-center items-center w-full mt-2 mb-2">
         <img className="w-40 h-40 object-contain" src="/assets/photo/connect4.png" alt="Connect4" />
       </div>
+      
     </Layout>
   );
 } 

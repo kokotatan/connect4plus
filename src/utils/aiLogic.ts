@@ -331,13 +331,13 @@ export const aiMove = (board: CellState[][], level: AILevel): number => {
 export const getAIThinkingTime = (level: AILevel): number => {
   switch (level) {
     case AILevel.BEGINNER:
-      return 500 + Math.random() * 1000; // 0.5-1.5秒
+      return 800 + Math.random() * 1200; // 0.8-2.0秒
     case AILevel.INTERMEDIATE:
-      return 1000 + Math.random() * 1500; // 1-2.5秒
+      return 1200 + Math.random() * 1800; // 1.2-3.0秒
     case AILevel.ADVANCED:
-      return 1500 + Math.random() * 2000; // 1.5-3.5秒
+      return 3000 + Math.random() * 4000; // 3.0-7.0秒
     case AILevel.EXPERT:
-      return 2000 + Math.random() * 3000; // 2-5秒
+      return 4000 + Math.random() * 6000; // 4.0-10.0秒
     default:
       return 1000;
   }

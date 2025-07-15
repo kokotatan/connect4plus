@@ -288,6 +288,7 @@ export default function WaitingForOpponentScreen() {
         
         {/* ルール説明ポップアップ */}
         <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
+        
       </Layout>
     );
   }
@@ -369,8 +370,9 @@ export default function WaitingForOpponentScreen() {
       </div>
         {/* ルール説明ポップアップ */}
         <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
-    </Layout>
-  );
+        
+      </Layout>
+    );
   }
 
   // 2人揃ったら即ゲーム開始アニメーション（return不要、useEffectで遷移）

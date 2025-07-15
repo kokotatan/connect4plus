@@ -4,6 +4,7 @@ import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
 import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
+import BackgroundMusic from '../components/BackgroundMusic';
 import { CellState, PlayerType, PlayerInfo } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
 import { ref, set, onValue, off, update } from 'firebase/database';
@@ -592,6 +593,9 @@ export default function GamePlayScreen({
           </div>
         </div>
       )}
+
+      {/* 背景BGM */}
+      <BackgroundMusic isPlaying={true} volume={0.2} showControls={true} />
 
     </main>
   );

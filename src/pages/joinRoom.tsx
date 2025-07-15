@@ -115,6 +115,7 @@ export default function JoinRoomScreen() {
           {isLoading ? '参加中...' : 'ゲームに参加する。'}
         </button>
       </div>
+      
     </Layout>
   );
 } 

@@ -4,6 +4,7 @@ import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
 import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
+import BackgroundMusic from '../components/BackgroundMusic';
 import { CellState, PlayerType, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
 import { AILevel, aiMove, getAIAvatar, getAIName, getAIThinkingTime, getAllAICharacters } from '../utils/aiLogic';
@@ -52,6 +53,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   // AI関連の状態
   const [aiThinking, setAiThinking] = useState(false);
   const [aiThinkingText, setAiThinkingText] = useState('');
+  const [aiThinkingPhase, setAiThinkingPhase] = useState(0);
+  const [showMathBackground, setShowMathBackground] = useState(false);
 
   // 演出用の状態
   const [comboVisible, setComboVisible] = useState(false);
@@ -78,6 +81,152 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   // ルール説明ポップアップの状態
   const [showRules, setShowRules] = useState(false);
 
+  // ゲーム開始・先手抽選の状態
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameStarting, setGameStarting] = useState(false);
+  const [lotteryPhase, setLotteryPhase] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+
+  // AI思考パターン定義
+  const getAIThinkingPatterns = (level: AILevel) => {
+    const patterns = {
+      [AILevel.BEGINNER]: {
+        // ぽとり和尚 - 仏教的・無念無想
+        calm: [
+          '無念無想...',
+          'ご縁ですな...',
+          'ただ落とすのみ...',
+          '流れに任せ...',
+          'これもまた道...',
+          '写経の時間...',
+          '無我の境地...',
+          '禅の心で...'
+        ],
+        excited: [
+          '筋肉が震える...',
+          'バキバキだ...',
+          '修行の成果...',
+          '鍛えた腕前...',
+          '筋肉に聞く...',
+          '筋力全開...',
+          'パワー注入...',
+          '肉体の極み...'
+        ],
+        phases: [
+          '情報収集開始...',
+          '盤面を観察...',
+          '流れを感じる...',
+          '直感で判断...',
+          '決定実行...'
+        ]
+      },
+      [AILevel.INTERMEDIATE]: {
+        // スジノ・カタル - 筋肉×戦略
+        calm: [
+          '3手先を読む...',
+          '戦略を練る...',
+          '分析実行中...',
+          '計算中...',
+          '思考中...',
+          '評価中...',
+          '最適解探索...',
+          '戦術構築...'
+        ],
+        excited: [
+          '筋肉に聞いた！',
+          '筋繊維が震える！',
+          'オレの二頭筋が！',
+          'ボディビル魂！',
+          'ストイックに！',
+          '筋肉×思考！',
+          'パワー全開！',
+          '筋力で勝つ！'
+        ],
+        phases: [
+          '情報収集開始...',
+          '3手先を計算...',
+          '筋肉に相談...',
+          '戦略構築中...',
+          '決定実行...'
+        ]
+      },
+      [AILevel.ADVANCED]: {
+        // ジラフ・ロウ - 物理・重力
+        calm: [
+          '重力法則を計算...',
+          '崩壊パターン解析...',
+          '物理法則適用...',
+          '落下シミュレーション...',
+          '力学計算中...',
+          '空間歪曲解析...',
+          '次元計算中...',
+          '時空を読み解く...'
+        ],
+        excited: [
+          '物理法則、背負ってます！',
+          '重力を操る！',
+          '崩壊の法則！',
+          '空間を歪める！',
+          '次元を超越！',
+          '時空を支配！',
+          '物理の極み！',
+          '法則を破る！'
+        ],
+        phases: [
+          '情報収集開始...',
+          '重力法則解析...',
+          '崩壊パターン計算...',
+          '物理シミュレーション...',
+          '決定実行...'
+        ]
+      },
+      [AILevel.EXPERT]: {
+        // 最強AI - 超現実的
+        calm: [
+          '量子計算実行中...',
+          '時空間を歪曲...',
+          '次元を超越...',
+          '宇宙の真理に迫る...',
+          '無限の可能性を探索...',
+          '時空の果てを見る...',
+          '存在の意味を問う...',
+          '現実を再構築...'
+        ],
+        excited: [
+          '量子レベルで勝利！',
+          '時空を支配する！',
+          '次元を超越する！',
+          '宇宙の真理！',
+          '無限の力！',
+          '時空の果て！',
+          '存在の極み！',
+          '現実を破壊！'
+        ],
+        phases: [
+          '量子情報収集...',
+          '時空間解析...',
+          '次元計算実行...',
+          '宇宙真理探索...',
+          '決定実行...'
+        ]
+      }
+    };
+    return patterns[level] || patterns[AILevel.BEGINNER];
+  };
+
+  // ゲーム状況を判定
+  const getGameSituation = () => {
+    const player1Score = player1.score;
+    const player2Score = player2.score;
+    const totalMoves = gameBoard.flat().filter(cell => cell.state !== 'empty').length;
+    
+    if (player2Score > player1Score + 1) return 'advantage';
+    if (player1Score > player2Score + 1) return 'disadvantage';
+    if (totalMoves < 10) return 'early';
+    if (totalMoves > 30) return 'late';
+    return 'neutral';
+  };
+
   // タイマー: プレイヤーの番の時だけ増える
   useEffect(() => {
     if (gameOver) return;
@@ -95,22 +244,59 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   // AIの思考演出
   useEffect(() => {
     if (aiThinking) {
-      const thinkingTexts = [
-        '考え中...',
-        '計算中...',
-        '分析中...',
-        '戦略を練り中...',
-        '最適解を探索中...',
-      ];
-      let textIndex = 0;
-      const textInterval = setInterval(() => {
-        setAiThinkingText(thinkingTexts[textIndex]);
-        textIndex = (textIndex + 1) % thinkingTexts.length;
-      }, 800);
+      const currentAILevel = player2.name === getAIName(aiLevel) ? aiLevel : selectedStrength;
+      const patterns = getAIThinkingPatterns(currentAILevel);
+      const situation = getGameSituation();
       
-      return () => clearInterval(textInterval);
+      // 最強AIの場合は背景に数式を表示
+      if (currentAILevel === AILevel.EXPERT) {
+        setShowMathBackground(true);
+      }
+      
+      // 思考時間が長いAI（上級・最強）のみ段階表示を行う
+      const shouldShowPhases = currentAILevel === AILevel.ADVANCED || currentAILevel === AILevel.EXPERT;
+      
+      if (shouldShowPhases) {
+        // 段階を進める（思考時間が長いAIのみ）
+        let phaseIndex = 0;
+        const phaseInterval = setInterval(() => {
+          if (phaseIndex < patterns.phases.length) {
+            setAiThinkingText(patterns.phases[phaseIndex]);
+            setAiThinkingPhase(phaseIndex);
+            phaseIndex++;
+          } else {
+            clearInterval(phaseInterval);
+          }
+        }, 2000); // 1秒 → 2秒に延長
+        
+        return () => {
+          clearInterval(phaseInterval);
+          setShowMathBackground(false);
+        };
+      } else {
+        // 初級・中級AIは単語単位で自然な表示
+        const words = [
+          ...patterns.calm.map(msg => msg.replace('...', '')),
+          ...patterns.excited.map(msg => msg.replace('...', ''))
+        ];
+        
+        let wordIndex = 0;
+        const wordInterval = setInterval(() => {
+          const randomWord = words[Math.floor(Math.random() * words.length)];
+          setAiThinkingText(randomWord);
+          wordIndex++;
+        }, 1500); // 1.5秒間隔で単語を表示
+        
+        return () => {
+          clearInterval(wordInterval);
+          setShowMathBackground(false);
+        };
+      }
+    } else {
+      setShowMathBackground(false);
+      setAiThinkingPhase(0);
     }
-  }, [aiThinking]);
+  }, [aiThinking, aiLevel, selectedStrength, player2.name]);
 
   // AIの手番処理
   useEffect(() => {
@@ -128,8 +314,24 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     
     // AIの思考時間（現在のAI強度を使用）
     const currentAILevel = player2.name === getAIName(aiLevel) ? aiLevel : selectedStrength;
-    const thinkingTime = getAIThinkingTime(currentAILevel);
-    await new Promise(resolve => setTimeout(resolve, thinkingTime));
+    const baseThinkingTime = getAIThinkingTime(currentAILevel);
+    
+    // 思考段階に応じた時間配分（上級・最強AIのみ）
+    const shouldShowPhases = currentAILevel === AILevel.ADVANCED || currentAILevel === AILevel.EXPERT;
+    
+    if (shouldShowPhases) {
+      const patterns = getAIThinkingPatterns(currentAILevel);
+      const phaseCount = patterns.phases.length;
+      const phaseTime = baseThinkingTime / phaseCount;
+      
+      // 各段階で少し待機
+      for (let i = 0; i < phaseCount; i++) {
+        await new Promise(resolve => setTimeout(resolve, phaseTime));
+      }
+    } else {
+      // 初級・中級AIは単純に思考時間だけ待機
+      await new Promise(resolve => setTimeout(resolve, baseThinkingTime));
+    }
     
     setAiThinking(false);
     
@@ -401,7 +603,108 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setConnect4Message('');
     setPlayer1(prev => ({ ...prev, isTurn: true, score: 0 }));
     setPlayer2(prev => ({ ...prev, isTurn: false, score: 0 }));
+    setGameStarted(false);
+    setGameStarting(false);
+    setLotteryPhase(false);
+    setSelectedPlayer(null);
   };
+
+  // ゲーム開始ボタン押下時
+  const handleStartGame = () => {
+    setGameStarting(true);
+    setTimeout(() => {
+      setLotteryPhase(true);
+      const firstTurn = Math.random() < 0.5 ? 'player1' : 'player2';
+      setSelectedPlayer(firstTurn);
+      
+      // 4秒後にゲーム開始
+      setTimeout(() => {
+        setGameStarted(true);
+        setPlayer1(prev => ({ ...prev, isTurn: firstTurn === 'player1' }));
+        setPlayer2(prev => ({ ...prev, isTurn: firstTurn === 'player2' }));
+      }, 2500); // 1500ms + 2500ms = 4000ms
+    }, 1500);
+  };
+
+  // ゲーム開始前の画面
+  if (!gameStarted) {
+    return (
+      <main className="w-full min-h-screen flex flex-col items-center relative overflow-hidden">
+        {/* 背景グラデーションのみ半透明 */}
+        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-emerald-50 via-emerald-100 to-white" style={{ opacity: 0.5, zIndex: 0 }} />
+        <div className="relative z-10 w-full flex flex-col items-center">
+          {/* タイトル */}
+          <div className="w-full flex flex-col items-center mt-4 mb-2">
+            <div className="text-xl sm:text-2xl font-bold text-black tracking-tight drop-shadow-sm">connect4plus</div>
+            <div className="text-xs sm:text-sm text-gray-500 mt-1 font-semibold">次世代型立体四目並べ</div>
+          </div>
+          
+          {/* User情報 */}
+          <div className="flex flex-row justify-center items-end gap-4 sm:gap-12 w-full max-w-2xl mt-2 mb-4">
+            {/* Player1 (プレイヤー) */}
+            <div className="flex flex-col items-center bg-white/60 rounded-xl px-2 py-1 sm:px-3 sm:py-2"> 
+              <img src={player1.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
+              <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
+                <span className="truncate" title={player1.name}>{player1.name}</span>
+                <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#4D6869' }} title="あなたのコマ色" />
+              </div>
+            </div>
+            
+            {/* VS */}
+            <div className="text-lg sm:text-2xl font-extrabold text-gray-400 mb-6 select-none">VS</div>
+            
+            {/* Player2 (AI) */}
+            <div className="flex flex-col items-center bg-white/60 rounded-xl px-2 py-1 sm:px-3 sm:py-2">
+              <img src={player2.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
+              <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
+                <span className="truncate" title={player2.name}>{player2.name}</span>
+                <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#55B89C' }} title="AIのコマ色" />
+              </div>
+            </div>
+          </div>
+
+          {/* ゲーム開始画面 */}
+          {!gameStarting ? (
+            <div className="flex flex-col items-center w-full">
+              <div className="bg-white rounded-2xl shadow-lg w-full max-w-xs sm:w-80 flex flex-col items-center px-6 py-6 mb-4">
+                <div className="text-lg font-bold text-gray-800 mb-4 text-center">AI戦の準備ができました</div>
+                <button
+                  onClick={handleStartGame}
+                  className="w-full h-12 bg-gradient-to-r from-purple-400 to-pink-400 text-white text-lg font-extrabold tracking-wide rounded-xl shadow hover:scale-105 active:scale-95 hover:from-purple-500 hover:to-pink-500 transition-all duration-150 drop-shadow-md"
+                >
+                  ゲーム開始
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center w-full">
+              <div className="text-center w-full max-w-xs sm:max-w-md mx-auto flex flex-col items-center">
+                <div className="text-4xl sm:text-6xl font-extrabold text-emerald-600 mb-2 sm:mb-4 animate-bounce leading-tight">GAME START!</div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-700 mb-1 sm:mb-2 leading-tight">ゲーム開始！</div>
+                {/* both_fighting画像を表示 */}
+                <img src="/assets/Avater/PosingAvater/both_fighting.png" alt="両者ファイティング" className="w-28 h-28 sm:w-40 sm:h-40 object-contain mx-auto mb-2 sm:mb-4" />
+                {/* 抽選演出 */}
+                <div className="mb-4 sm:mb-6 w-full flex flex-col items-center">
+                  <div className="text-base sm:text-xl font-bold text-gray-700 mb-1 sm:mb-2">
+                    {lotteryPhase ? '先手が決まりました！' : '先手を抽選中...'}
+                  </div>
+                  <div className="flex justify-center items-center gap-4 sm:gap-8 mb-2 sm:mb-4 w-full">
+                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{player1.name}{lotteryPhase && selectedPlayer === 'player1' && <span className="ml-1 sm:ml-2">🎯</span>}</div>
+                    <div className="text-lg sm:text-2xl font-bold text-gray-400">VS</div>
+                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{player2.name}{lotteryPhase && selectedPlayer === 'player2' && <span className="ml-1 sm:ml-2">🎯</span>}</div>
+                  </div>
+                  <div className={`w-10 h-10 sm:w-16 sm:h-16 border-4 border-emerald-400 border-t-transparent rounded-full mx-auto ${lotteryPhase ? 'animate-pulse' : 'animate-spin'}`}></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* 背景BGM */}
+        <BackgroundMusic isPlaying={true} volume={0.2} showControls={true} />
+      </main>
+    );
+  }
 
   // UI
   return (
@@ -444,7 +747,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
             {aiThinking && (
               <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 px-4 py-2 bg-white border-2 border-emerald-300 rounded-xl shadow-lg animate-pulse flex items-center gap-2">
                 <span className="text-emerald-500 text-lg">💭</span>
-                <span className="text-xs font-bold text-emerald-700">考え中...</span>
+                <span className="text-xs font-bold text-emerald-700">{aiThinkingText}</span>
               </div>
             )}
           </div>
@@ -486,6 +789,49 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
             </div>
           </div>
         </div>
+
+        {/* 最強AI用数式背景 */}
+        {showMathBackground && (
+          <div className="fixed inset-0 pointer-events-none z-5">
+            <div className="absolute inset-0 overflow-hidden">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute text-purple-200/20 text-xs font-mono animate-pulse"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                    animationDuration: `${3 + Math.random() * 2}s`
+                  }}
+                >
+                  {[
+                    '∫(x²)dx',
+                    '∑(n=1→∞)',
+                    '∇²ψ = 0',
+                    'E = mc²',
+                    'F = ma',
+                    'πr²',
+                    '√(-1)',
+                    'lim(x→∞)',
+                    '∂f/∂x',
+                    '∮F·dr',
+                    'det(A)',
+                    'tr(M)',
+                    'dim(V)',
+                    'ker(T)',
+                    'im(f)',
+                    'gcd(a,b)',
+                    'lcm(x,y)',
+                    'φ(n)',
+                    'ζ(s)',
+                    'Γ(z)'
+                  ][i % 20]}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         {/* 結果モーダル */}
         {gameOver && result && finalBoard && (
@@ -617,6 +963,9 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         scoreEffects={scoreEffects}
         fireworkVisible={fireworkVisible}
       />
+      
+      {/* 背景BGM */}
+      <BackgroundMusic isPlaying={true} volume={0.2} showControls={true} />
     </main>
   );
 } 
