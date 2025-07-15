@@ -337,21 +337,13 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     // AIの手を決定（現在のAI強度を使用）
     const aiColumn = aiMove(gameBoard, currentAILevel);
     if (aiColumn !== -1) {
-      await handleColumnClick(aiColumn);
+      // handleColumnClickを直接呼び出し
+      await handleColumnClickDirect(aiColumn);
     }
-  }, [isProcessing, gameOver, aiLevel, selectedStrength, player2.name, gameBoard, handleColumnClick]);
+  }, [isProcessing, gameOver, aiLevel, selectedStrength, player2.name, gameBoard]);
 
-  // AIの手番を監視
-  useEffect(() => {
-    console.log('AI手番監視:', { player2Turn: player2.isTurn, isProcessing, gameOver });
-    if (player2.isTurn && !isProcessing && !gameOver) {
-      console.log('AI手番開始');
-      handleAITurn();
-    }
-  }, [player2.isTurn, isProcessing, gameOver, handleAITurn]);
-
-  // セルを置く（connect4+連鎖・重力・スコア・3点先取）
-  const handleColumnClick = useCallback(async (columnIndex: number) => {
+  // 直接的なセルクリック処理（循環参照を避けるため）
+  const handleColumnClickDirect = useCallback(async (columnIndex: number) => {
     if (isProcessing || gameOver) return;
     const playerType: PlayerType = player1.isTurn ? 'player1' : 'player2';
     if (isColumnFull(gameBoard, columnIndex)) return;
@@ -570,6 +562,23 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setPlayer2(prev => ({ ...prev, isTurn: !prev.isTurn }));
     setIsProcessing(false);
   }, [isProcessing, gameOver, player1.isTurn, player1.score, player2.score, gameBoard, gameSettings.winScore]);
+
+  // AIの手番を監視
+  useEffect(() => {
+    console.log('AI手番監視:', { player2Turn: player2.isTurn, isProcessing, gameOver });
+    if (player2.isTurn && !isProcessing && !gameOver) {
+      console.log('AI手番開始');
+      handleAITurn();
+    }
+  }, [player2.isTurn, isProcessing, gameOver, handleAITurn]);
+
+  // セルを置く（connect4+連鎖・重力・スコア・3点先取）
+  const handleColumnClick = useCallback(async (columnIndex: number) => {
+    // プレイヤーの手番のみ処理
+    if (player1.isTurn) {
+      await handleColumnClickDirect(columnIndex);
+    }
+  }, [player1.isTurn, handleColumnClickDirect]);
 
   // ハイライト（プレイヤーの番の時のみ）
   const handleColumnHover = (col: number) => { 
