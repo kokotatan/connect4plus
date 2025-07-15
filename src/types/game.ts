@@ -1,4 +1,4 @@
-export type PlayerType = 'player1' | 'player2';
+export type PlayerType = 'player1' | 'player2' | 'ai';
 
 export type CellState = 
   | { state: 'empty' }
@@ -23,5 +23,5 @@ export interface PlayerInfo {
   isTurn: boolean;
   timer: number;
   isActive: boolean;
-  type: 'graycat' | 'tiger';
+  type: 'graycat' | 'tiger' | 'ai';
 } 
