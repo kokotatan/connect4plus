@@ -122,25 +122,17 @@ const checkWin = (board: CellState[][], player: PlayerType): boolean => {
 const evaluateBoard = (board: CellState[][], aiPlayer: PlayerType): number => {
   const humanPlayer: PlayerType = aiPlayer === 'player1' ? 'player2' : 'player1';
   
-  // AIが勝てる場合
-  if (checkWin(board, aiPlayer)) {
-    return 10000;
-  }
+  if (checkWin(board, aiPlayer)) return 1000;
+  if (checkWin(board, humanPlayer)) return -1000;
   
-  // 人間が勝てる場合
-  if (checkWin(board, humanPlayer)) {
-    return -10000;
-  }
-  
-  // 基本的な評価（中央列を重視）
   let score = 0;
   const centerCol = Math.floor(board[0].length / 2);
   
-  // 各セルの評価
+  // 盤面の基本評価
   for (let row = 0; row < board.length; row++) {
     for (let col = 0; col < board[row].length; col++) {
       if (board[row][col].state === 'normal') {
-        const player = board[row][col].player;
+        const player = getCellPlayer(board[row][col]);
         const value = player === aiPlayer ? 1 : -1;
         
         // 中央列を重視
@@ -177,10 +169,10 @@ const evaluatePotentialWins = (board: CellState[][], aiPlayer: PlayerType): numb
   for (let row = 0; row < board.length; row++) {
     for (let col = 0; col <= board[row].length - 4; col++) {
       const pattern = [
-        board[row][col].state === 'normal' ? board[row][col].player : 'empty',
-        board[row][col + 1].state === 'normal' ? board[row][col + 1].player : 'empty',
-        board[row][col + 2].state === 'normal' ? board[row][col + 2].player : 'empty',
-        board[row][col + 3].state === 'normal' ? board[row][col + 3].player : 'empty'
+        getCellPlayer(board[row][col]),
+        getCellPlayer(board[row][col + 1]),
+        getCellPlayer(board[row][col + 2]),
+        getCellPlayer(board[row][col + 3])
       ];
       
       const aiCount = pattern.filter(p => p === aiPlayer).length;
@@ -198,10 +190,10 @@ const evaluatePotentialWins = (board: CellState[][], aiPlayer: PlayerType): numb
   for (let row = 0; row <= board.length - 4; row++) {
     for (let col = 0; col < board[row].length; col++) {
       const pattern = [
-        board[row][col].state === 'normal' ? board[row][col].player : 'empty',
-        board[row + 1][col].state === 'normal' ? board[row + 1][col].player : 'empty',
-        board[row + 2][col].state === 'normal' ? board[row + 2][col].player : 'empty',
-        board[row + 3][col].state === 'normal' ? board[row + 3][col].player : 'empty'
+        getCellPlayer(board[row][col]),
+        getCellPlayer(board[row + 1][col]),
+        getCellPlayer(board[row + 2][col]),
+        getCellPlayer(board[row + 3][col])
       ];
       
       const aiCount = pattern.filter(p => p === aiPlayer).length;
@@ -349,4 +341,50 @@ export const getAIThinkingTime = (level: AILevel): number => {
     default:
       return 1000;
   }
+}; 
+
+// セルのプレイヤーを取得（安全な型ガード付き）
+const getCellPlayer = (cell: CellState): PlayerType | 'empty' => {
+  if (cell.state === 'empty') return 'empty';
+  return cell.player;
+};
+
+// 水平方向の4つ並びをチェック
+const checkHorizontal = (board: CellState[][], player: PlayerType): boolean => {
+  for (let row = 0; row < board.length; row++) {
+    for (let col = 0; col <= board[0].length - 4; col++) {
+      const cellPlayer = getCellPlayer(board[row][col]);
+      if (cellPlayer === 'empty') continue;
+      
+      if (
+        getCellPlayer(board[row][col]) === player &&
+        getCellPlayer(board[row][col + 1]) === player &&
+        getCellPlayer(board[row][col + 2]) === player &&
+        getCellPlayer(board[row][col + 3]) === player
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+// 垂直方向の4つ並びをチェック
+const checkVertical = (board: CellState[][], player: PlayerType): boolean => {
+  for (let row = 0; row <= board.length - 4; row++) {
+    for (let col = 0; col < board[0].length; col++) {
+      const cellPlayer = getCellPlayer(board[row][col]);
+      if (cellPlayer === 'empty') continue;
+      
+      if (
+        getCellPlayer(board[row][col]) === player &&
+        getCellPlayer(board[row + 1][col]) === player &&
+        getCellPlayer(board[row + 2][col]) === player &&
+        getCellPlayer(board[row + 3][col]) === player
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
 }; 

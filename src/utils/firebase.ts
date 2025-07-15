@@ -1,5 +1,40 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getDatabase, ref, set, get, onValue, off, remove } from 'firebase/database';
+import { CellState } from '../types/game';
+
+// プレイヤー情報の型定義
+export interface PlayerInfo {
+  sessionId: string;
+  roomId: string;
+  playerName: string;
+  isPlayer1: boolean;
+  isPlayer2: boolean;
+  joinedAt: number;
+}
+
+// ルームデータの型定義
+export interface RoomData {
+  player1: {
+    name: string;
+    sessionId: string;
+    isReady: boolean;
+  };
+  player2: {
+    name: string;
+    sessionId: string;
+    isReady: boolean;
+  } | null;
+  status: 'waiting' | 'ready' | 'playing' | 'finished';
+  createdAt: number;
+  gameState?: {
+    board: CellState[][];
+    currentTurn: 'player1' | 'player2';
+    player1Score: number;
+    player2Score: number;
+    gameOver: boolean;
+    winner: string | null;
+  };
+}
 
 const firebaseConfig = {
   apiKey: "AIzaSyBimWEhK2F7QXf65qRILkHaNXPY1w7vUUo",
@@ -62,7 +97,7 @@ export const savePlayerInfo = (roomId: string, playerName: string, isPlayer1: bo
 };
 
 // プレイヤー情報をセッションストレージから取得
-export const getPlayerInfo = () => {
+export const getPlayerInfo = (): PlayerInfo | null => {
   if (typeof window === 'undefined') return null;
   
   const playerInfoStr = sessionStorage.getItem('connect4plus_player_info');
@@ -74,7 +109,7 @@ export const getPlayerInfo = () => {
     if (typeof info.isPlayer2 === 'undefined') {
       info.isPlayer2 = !info.isPlayer1;
     }
-    return info;
+    return info as PlayerInfo;
   } catch {
     return null;
   }
@@ -147,7 +182,7 @@ export const checkRoomExists = async (roomId: string): Promise<boolean> => {
 };
 
 // ルーム監視
-export const watchRoom = (roomId: string, callback: (data: any) => void) => {
+export const watchRoom = (roomId: string, callback: (data: RoomData | null) => void) => {
   const roomRef = ref(db, `rooms/${roomId}`);
   onValue(roomRef, (snapshot) => {
     callback(snapshot.val());

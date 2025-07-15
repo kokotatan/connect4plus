@@ -1,28 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import GamePlayScreen from '../components/GamePlayScreen';
-import { watchRoom, deleteRoom } from '../utils/firebase';
-
-interface RoomData {
-  player1: {
-    name: string;
-    isReady: boolean;
-  };
-  player2: {
-    name: string;
-    isReady: boolean;
-  } | null;
-  status: 'waiting' | 'ready' | 'playing' | 'finished';
-  createdAt: number;
-  gameState?: {
-    board: any[][];
-    currentTurn: 'player1' | 'player2';
-    player1Score: number;
-    player2Score: number;
-    gameOver: boolean;
-    winner: string | null;
-  };
-}
+import { watchRoom, deleteRoom, RoomData } from '../utils/firebase';
 
 export default function GamePage() {
   const [roomData, setRoomData] = useState<RoomData | null>(null);
@@ -38,13 +17,15 @@ export default function GamePage() {
     }
 
     // ルーム監視開始
-    const unsubscribe = watchRoom(roomId, (data: RoomData) => {
-      setRoomData(data);
-      setIsLoading(false);
+    const unsubscribe = watchRoom(roomId, (data: RoomData | null) => {
+      if (data) {
+        setRoomData(data);
+        setIsLoading(false);
 
-      // ゲーム終了時
-      if (data && data.status === 'finished') {
-        // ゲーム終了処理
+        // ゲーム終了時
+        if (data.status === 'finished') {
+          // ゲーム終了処理
+        }
       }
     });
 
@@ -99,7 +80,7 @@ export default function GamePage() {
     isTurn: roomData.gameState?.currentTurn === 'player1' || initialTurn === 'player1',
     timer: 0,
     isActive: true,
-    type: 'graycat',
+    type: 'graycat' as const,
   };
 
   const player2 = {
@@ -109,7 +90,7 @@ export default function GamePage() {
     isTurn: roomData.gameState?.currentTurn === 'player2' || initialTurn === 'player2',
     timer: 0,
     isActive: true,
-    type: 'tiger',
+    type: 'tiger' as const,
   };
 
   return (

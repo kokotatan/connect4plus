@@ -137,7 +137,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = async (columnIndex: number) => {
     if (isProcessing || gameOver) return;
-    const playerType: PlayerType = player1.isTurn ? player1.type : player2.type;
+    const playerType: PlayerType = player1.isTurn ? 'player1' : 'player2';
     if (isColumnFull(gameBoard, columnIndex)) return;
     
     // 一番下の空セルを探す
@@ -171,10 +171,11 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
         }
         // playerの型が不正な場合はemptyに矯正
         if (
-          (cell as any).player &&
-          (cell as any).player !== 'graycat' &&
-          (cell as any).player !== 'tiger' &&
-          (cell as any).player !== 'ai'
+          'player' in cell &&
+          typeof cell.player === 'string' &&
+          cell.player !== 'player1' &&
+          cell.player !== 'player2' &&
+          cell.player !== 'ai'
         ) {
           return { state: 'empty' } as CellState;
         }
@@ -196,8 +197,8 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
       comboChainCount++;
       // 1. どちらのプレイヤーも4つ揃いがあるか判定
       const combos = [
-        { type: player1.type as PlayerType, result: checkForCombos(newBoard, player1.type) },
-        { type: player2.type as PlayerType, result: checkForCombos(newBoard, player2.type) },
+        { type: 'player1' as PlayerType, result: checkForCombos(newBoard, 'player1') },
+        { type: 'player2' as PlayerType, result: checkForCombos(newBoard, 'player2') },
       ];
       // 2. 星セル化・スコア加算
       let foundCombo = false;
@@ -207,7 +208,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
           newBoard = newBoard.map((row, rIdx) =>
             row.map((cell, cIdx) =>
               result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
-                ? { ...cell, state: 'star' }
+                ? { ...cell, state: 'star', player: type }
                 : cell
             )
           );

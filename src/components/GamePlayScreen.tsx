@@ -7,7 +7,7 @@ import RulesPopup from '../components/RulesPopup';
 import { CellState, PlayerType, PlayerInfo } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
 import { ref, set, onValue, off, update } from 'firebase/database';
-import { db, getPlayerInfo } from '../utils/firebase';
+import { db, getPlayerInfo, PlayerInfo as FirebasePlayerInfo } from '../utils/firebase';
 
 interface GamePlayScreenProps {
   player1: PlayerInfo;
@@ -42,7 +42,7 @@ export default function GamePlayScreen({
   const [finalBoard, setFinalBoard] = useState<CellState[][] | null>(null);
 
   // セッション情報からプレイヤーを識別
-  const [currentPlayerInfo, setCurrentPlayerInfo] = useState<any>(null);
+  const [currentPlayerInfo, setCurrentPlayerInfo] = useState<FirebasePlayerInfo | null>(null);
   const [currentPlayerType, setCurrentPlayerType] = useState<'player1' | 'player2' | null>(null);
 
   useEffect(() => {
@@ -220,7 +220,7 @@ export default function GamePlayScreen({
     
     try {
       // セルを置く
-      let newBoard = gameBoard.map((row, rIdx) =>
+      let newBoard: CellState[][] = gameBoard.map((row, rIdx) =>
         row.map((cell, cIdx) => (rIdx === targetRow && cIdx === columnIndex ? { state: 'normal', player: playerType } : cell))
       );
       setGameBoard(newBoard);
@@ -238,7 +238,6 @@ export default function GamePlayScreen({
       while (comboing) {
         comboing = false;
         comboChainCount++;
-        
         // 1. どちらのプレイヤーも4つ揃いがあるか判定
         const combos = [
           { type: 'player1' as PlayerType, result: checkForCombos(newBoard, 'player1') },
@@ -249,14 +248,13 @@ export default function GamePlayScreen({
         combos.forEach(({ type, result }) => {
           if (result.hasCombo) {
             foundCombo = true;
-            hasComboOccurred = true; // COMBOが発生したことを記録
             newBoard = newBoard.map((row, rIdx) =>
               row.map((cell, cIdx) =>
                 result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
-                  ? { ...cell, state: 'star' }
+                  ? { ...cell, state: 'star', player: type }
                   : cell
               )
-            );
+            ) as CellState[][];
             setGameBoard(newBoard);
             if (type === 'player1') {
               localScore1++;
@@ -265,23 +263,6 @@ export default function GamePlayScreen({
             if (type === 'player2') {
               localScore2++;
               tempPlayer2Score++;
-            }
-            
-            // COMBO中に3点到達したら即勝利
-            if (checkWinCondition(tempPlayer1Score) || checkWinCondition(tempPlayer2Score)) {
-              comboWin = true;
-              const winner = checkWinCondition(tempPlayer1Score) ? player1.name : player2.name;
-              setGameOver(true);
-              setResult({ result: 'win', winner });
-              setFinalBoard(newBoard);
-              setFireworkVisible(true);
-              setTimeout(() => setFireworkVisible(false), 3000);
-              syncGameState(newBoard, 
-                { ...player1, score: tempPlayer1Score, isTurn: false }, 
-                { ...player2, score: tempPlayer2Score, isTurn: false }, 
-                true, winner);
-              setIsProcessing(false);
-              return;
             }
           }
         });
@@ -455,7 +436,7 @@ export default function GamePlayScreen({
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: '#4D6869' }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
-            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={3} playerType="player1" /></div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={3} playerType={player1.type} /></div>
           </div>
           {/* VS */}
           <div className="text-lg sm:text-2xl font-extrabold text-gray-400 mb-6 select-none">VS</div>
@@ -467,7 +448,7 @@ export default function GamePlayScreen({
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: '#55B89C' }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
-            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={3} playerType="player2" /></div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={3} playerType={player2.type} /></div>
           </div>
         </div>
         {/* ゲーム盤面 */}

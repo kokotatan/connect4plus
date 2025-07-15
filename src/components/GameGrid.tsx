@@ -5,6 +5,7 @@ import Cell from './Cell';
 export type GameGridProps = {
   board: CellState[][];
   highlightedColumn?: number | null;
+  lastMoveColumn?: number | null;
   onColumnClick?: (col: number) => void;
   onColumnHover?: (col: number) => void;
   onColumnLeave?: () => void;

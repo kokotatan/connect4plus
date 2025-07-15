@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
+import { watchRoom, getPlayerInfo, RoomData } from '../utils/firebase';
 import RulesPopup from '../components/RulesPopup';
-import { watchRoom, deleteRoom } from '../utils/firebase';
 import { ref, set, onValue, off, update } from 'firebase/database';
-import { db, getPlayerInfo } from '../utils/firebase';
+import { db } from '../utils/firebase';
 import { createEmptyBoard } from '../utils/gameLogic';
 
 const GRAYCAT_PLAYING = '/assets/Avater/PosingAvater/graycat_playing.png';
@@ -45,21 +45,6 @@ const marqueeInnerStyle: React.CSSProperties = {
   alignItems: 'center',
 };
 
-interface RoomData {
-  player1: {
-    name: string;
-    isReady: boolean;
-    sessionId: string; // Added sessionId
-  };
-  player2: {
-    name: string;
-    isReady: boolean;
-    sessionId: string; // Added sessionId
-  } | null;
-  status: 'waiting' | 'ready';
-  createdAt: number;
-}
-
 export default function WaitingForOpponentScreen() {
   // useState/useEffectを最上部にまとめる
   const [showRules, setShowRules] = useState(false);
@@ -83,10 +68,12 @@ export default function WaitingForOpponentScreen() {
       return;
     }
     // ルーム監視開始
-    const unsubscribe = watchRoom(roomId, (data: RoomData) => {
+    const unsubscribe = watchRoom(roomId, (data: RoomData | null) => {
       console.log('watchRoom data:', data); // デバッグ用
-      setRoomData(data);
-      setIsLoading(false);
+      if (data) {
+        setRoomData(data);
+        setIsLoading(false);
+      }
     });
     return () => unsubscribe();
   }, [roomId, router]);
@@ -129,7 +116,7 @@ export default function WaitingForOpponentScreen() {
               setSelectedPlayer(firstTurn);
             }, 1500);
             setTimeout(() => {
-              router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2.name || '')}&firstTurn=${firstTurn}`);
+              router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2?.name || '')}&firstTurn=${firstTurn}`);
             }, 4000);
           }).catch((error) => {
             console.error('ゲーム状態初期化エラー:', error);
@@ -146,7 +133,7 @@ export default function WaitingForOpponentScreen() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (roomId && typeof roomId === 'string' && player1Name) {
-        deleteRoom(roomId);
+        // deleteRoom(roomId); // deleteRoomはfirebase.tsから削除されたため、この行は削除
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
