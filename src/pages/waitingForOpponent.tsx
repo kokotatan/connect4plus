@@ -263,6 +263,13 @@ export default function WaitingForOpponentScreen() {
           <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600">
             この画面のまま、しばらくお待ちください。
           </div>
+          {/* タイトルに戻るボタン */}
+          <button
+            onClick={() => router.push('/')}
+            className="mt-4 px-6 py-2 bg-gray-400 text-white rounded-full text-sm font-semibold shadow hover:bg-gray-500 transition-colors"
+          >
+            タイトルに戻る
+          </button>
         </div>
         {/* Connect4画像を白枠の下に配置 */}
         <div className="flex justify-center items-center w-full mt-2 mb-2">
