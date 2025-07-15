@@ -54,11 +54,11 @@ export const Cell: React.FC<CellProps> = ({ state, isHighlighted = false }) => {
           background: getCellColor(),
           opacity: state.state === 'empty' && fadeOut ? 0 : (state.state === 'empty' ? 0.3 : 1),
           transition: fadeOut ? 'opacity 0.4s' : undefined,
-          // 星セルの場合、より目立つ効果を追加
+          // 星セルの場合、控えめな効果を追加
           ...(state.state === 'star' && {
-            boxShadow: '0 0 20px rgba(151, 71, 255, 0.8), inset 0 0 10px rgba(151, 71, 255, 0.3)',
-            animation: 'starPulse 1.5s ease-in-out infinite',
-            transform: 'scale(1.1)',
+            boxShadow: '0 0 12px rgba(151, 71, 255, 0.6), inset 0 0 6px rgba(151, 71, 255, 0.2)',
+            animation: 'starPulse 2s ease-in-out infinite',
+            transform: 'scale(1.05)',
           })
         }}
       >
@@ -67,26 +67,26 @@ export const Cell: React.FC<CellProps> = ({ state, isHighlighted = false }) => {
             {/* 星のアイコン */}
             <svg
               viewBox="0 0 24 24"
-              width="24"
-              height="24"
+              width="20"
+              height="20"
               style={{ 
                 position: 'absolute', 
                 top: '50%', 
                 left: '50%', 
                 transform: 'translate(-50%, -50%)',
-                filter: 'drop-shadow(0 0 4px rgba(151, 71, 255, 0.8))'
+                filter: 'drop-shadow(0 0 2px rgba(151, 71, 255, 0.6))'
               }}
               fill="#FFFFFF"
               className="animate-pulse"
             >
               <polygon points="12,2 15,9 22,9.5 17,14.5 18.5,22 12,18 5.5,22 7,14.5 2,9.5 9,9" />
             </svg>
-            {/* 光る効果 */}
+            {/* 光る効果（控えめに） */}
             <div 
-              className="absolute inset-0 rounded-full animate-ping"
+              className="absolute inset-0 rounded-full"
               style={{
-                background: 'radial-gradient(circle, rgba(151, 71, 255, 0.4) 0%, transparent 70%)',
-                animation: 'starGlow 2s ease-in-out infinite'
+                background: 'radial-gradient(circle, rgba(151, 71, 255, 0.2) 0%, transparent 70%)',
+                animation: 'starGlow 3s ease-in-out infinite'
               }}
             />
           </>
@@ -98,23 +98,23 @@ export const Cell: React.FC<CellProps> = ({ state, isHighlighted = false }) => {
         <style jsx>{`
           @keyframes starPulse {
             0%, 100% {
-              transform: scale(1.1);
-              box-shadow: 0 0 20px rgba(151, 71, 255, 0.8), inset 0 0 10px rgba(151, 71, 255, 0.3);
+              transform: scale(1.05);
+              box-shadow: 0 0 12px rgba(151, 71, 255, 0.6), inset 0 0 6px rgba(151, 71, 255, 0.2);
             }
             50% {
-              transform: scale(1.2);
-              box-shadow: 0 0 30px rgba(151, 71, 255, 1), inset 0 0 15px rgba(151, 71, 255, 0.5);
+              transform: scale(1.1);
+              box-shadow: 0 0 16px rgba(151, 71, 255, 0.8), inset 0 0 8px rgba(151, 71, 255, 0.3);
             }
           }
           
           @keyframes starGlow {
             0%, 100% {
-              opacity: 0.6;
+              opacity: 0.3;
               transform: scale(1);
             }
             50% {
-              opacity: 1;
-              transform: scale(1.1);
+              opacity: 0.6;
+              transform: scale(1.05);
             }
           }
         `}</style>

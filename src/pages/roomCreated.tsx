@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useRouter } from 'next/router';
+import GameSettingsPanel from '../components/GameSettingsPanel';
+import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 
 export default function RoomCreatedScreen() {
   const [copied, setCopied] = useState(false);
   const [inviteUrl, setInviteUrl] = useState('');
   const [roomId, setRoomId] = useState('');
+  const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const router = useRouter();
   const { roomId: urlRoomId, player1Name } = router.query;
   const [ready, setReady] = useState(false);
@@ -64,7 +67,7 @@ export default function RoomCreatedScreen() {
 
   const handleStartGame = () => {
     if (roomId && player1Name) {
-      router.push(`/waitingForOpponent?roomId=${roomId}&player1Name=${player1Name}`);
+      router.push(`/waitingForOpponent?roomId=${roomId}&player1Name=${player1Name}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}&soundType=${gameSettings.soundType}`);
     } else {
       router.push('/');
     }
@@ -120,6 +123,13 @@ export default function RoomCreatedScreen() {
         >
           <span className="text-white text-base font-extrabold leading-snug drop-shadow-sm">ゲームを開始する。</span>
         </button>
+        
+        {/* ゲーム設定パネル（オンラインモード用） */}
+        <GameSettingsPanel
+          settings={gameSettings}
+          onSettingsChange={setGameSettings}
+          isVisible={true}
+        />
       </div>
       {/* 使い方カード */}
       <div className="bg-white rounded-2xl shadow-lg w-80 flex flex-col px-6 py-4 mb-4">

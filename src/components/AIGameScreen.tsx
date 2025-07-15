@@ -4,16 +4,17 @@ import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
 import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
-import { CellState, PlayerType, PlayerInfo } from '../types/game';
+import { CellState, PlayerType, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
 import { AILevel, aiMove, getAIAvatar, getAIName, getAIThinkingTime, getAllAICharacters } from '../utils/aiLogic';
 
 interface AIGameScreenProps {
   playerName: string;
   aiLevel: AILevel;
+  gameSettings?: GameSettings;
 }
 
-export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps) {
+export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAULT_GAME_SETTINGS }: AIGameScreenProps) {
   const router = useRouter();
   
   // プレイヤー情報
@@ -249,7 +250,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
         setTimeout(() => setComboVisible(false), 2000); // 1200ms → 2000ms
       }
       // ここで勝利判定
-      if (checkWinCondition(tempPlayer1Score)) {
+      if (checkWinCondition(tempPlayer1Score, gameSettings.winScore)) {
         setPlayer1(prev => ({ ...prev, score: tempPlayer1Score }));
         setPlayer2(prev => ({ ...prev, score: tempPlayer2Score }));
         setGameOver(true);
@@ -260,7 +261,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
         comboWin = true;
         break;
       }
-      if (checkWinCondition(tempPlayer2Score)) {
+      if (checkWinCondition(tempPlayer2Score, gameSettings.winScore)) {
         setPlayer1(prev => ({ ...prev, score: tempPlayer1Score }));
         setPlayer2(prev => ({ ...prev, score: tempPlayer2Score }));
         setGameOver(true);
@@ -272,8 +273,8 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
         break;
       }
       if (!foundCombo) break;
-      // 3. 星セルを一定時間後に消去（持続時間を延長）
-      await new Promise(res => setTimeout(res, 1500)); // 700ms → 1500ms
+      // 3. 星セルを一定時間後に消去（持続時間を調整）
+      await new Promise(res => setTimeout(res, 1200)); // 1500ms → 1200ms
       combos.forEach(({ result }) => {
         if (result.hasCombo) {
           newBoard = newBoard.map((row, rIdx) =>
@@ -332,8 +333,8 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
     if (localScore2 > 0) setPlayer2(prev => ({ ...prev, score: prev.score + localScore2 }));
 
     // 3点先取勝利判定
-    const p1Win = checkWinCondition(player1.score + localScore1);
-    const p2Win = checkWinCondition(player2.score + localScore2);
+    const p1Win = checkWinCondition(player1.score + localScore1, gameSettings.winScore);
+    const p2Win = checkWinCondition(player2.score + localScore2, gameSettings.winScore);
     if (p1Win || p2Win) {
       setGameOver(true);
       setResult({ result: 'win', winner: p1Win ? player1.name : player2.name });
@@ -424,7 +425,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#4D6869' }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
-            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={3} playerType={player1.type} /></div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={gameSettings.winScore} playerType={player1.type} /></div>
           </div>
           
           {/* VS */}
@@ -438,7 +439,7 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#55B89C' }} title="AIのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
-            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={3} playerType={player2.type} /></div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={gameSettings.winScore} playerType={player2.type} /></div>
             {/* AI思考中ポップアップ */}
             {aiThinking && (
               <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 px-4 py-2 bg-white border-2 border-emerald-300 rounded-xl shadow-lg animate-pulse flex items-center gap-2">
@@ -597,11 +598,11 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
 
         {/* Connect4成立時のポップアップ */}
         {connect4Visible && connect4Player && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-gradient-to-br from-emerald-50 to-white rounded-3xl shadow-2xl p-8 mx-4 max-w-sm text-center border-4 border-emerald-400 animate-bounce">
-              <div className="text-6xl mb-4 animate-pulse">⭐</div>
-              <div className="text-2xl font-bold text-emerald-600 mb-3">Connect4!</div>
-              <div className="text-lg font-semibold text-gray-800 bg-white rounded-xl p-3 shadow-inner">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl shadow-xl p-6 mx-4 max-w-sm text-center border-2 border-emerald-300">
+              <div className="text-4xl mb-3 text-emerald-500">⭐</div>
+              <div className="text-xl font-bold text-emerald-600 mb-2">Connect4!</div>
+              <div className="text-base font-semibold text-gray-700 bg-white rounded-lg p-2">
                 {connect4Message}
               </div>
             </div>

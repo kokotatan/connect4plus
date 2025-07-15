@@ -143,8 +143,8 @@ export const checkForCombos = (board: CellState[][], player: PlayerType): ComboR
 };
 
 // 勝利条件チェック
-export const checkWinCondition = (score: number): boolean => {
-  return score >= WIN_SCORE;
+export const checkWinCondition = (score: number, winScore: number = 3): boolean => {
+  return score >= winScore;
 };
 
 // 引き分けチェック

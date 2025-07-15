@@ -8,6 +8,7 @@ import { CellState, PlayerType, PlayerInfo } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
 import { ref, set, onValue, off, update } from 'firebase/database';
 import { db, getPlayerInfo, PlayerInfo as FirebasePlayerInfo } from '../utils/firebase';
+import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 
 interface GamePlayScreenProps {
   player1: PlayerInfo;
@@ -15,6 +16,7 @@ interface GamePlayScreenProps {
   onGameEnd?: (winner: string | null) => void;
   roomId?: string;
   isOnlineMode?: boolean;
+  gameSettings?: GameSettings;
 }
 
 const AVATERS = {
@@ -27,7 +29,8 @@ export default function GamePlayScreen({
   player2: initialPlayer2,
   onGameEnd,
   roomId,
-  isOnlineMode = false
+  isOnlineMode = false,
+  gameSettings = DEFAULT_GAME_SETTINGS
 }: GamePlayScreenProps) {
   const router = useRouter();
   const [player1, setPlayer1] = useState<PlayerInfo>({ ...initialPlayer1, avatar: AVATERS.player1 });
@@ -301,8 +304,8 @@ export default function GamePlayScreen({
           setTimeout(() => setComboVisible(false), 2000);
         }
 
-        // 3. 星セルを一定時間後に消去（持続時間を延長）
-        await new Promise(res => setTimeout(res, 1500)); // 700ms → 1500ms
+        // 3. 星セルを一定時間後に消去（持続時間を調整）
+        await new Promise(res => setTimeout(res, 1200)); // 1500ms → 1200ms
         combos.forEach(({ result }) => {
           if (result.hasCombo) {
             newBoard = newBoard.map((row, rIdx) =>
@@ -359,8 +362,8 @@ export default function GamePlayScreen({
       setPlayer2(newPlayer2);
 
       // 3点先取勝利判定
-      const p1Win = checkWinCondition(newPlayer1.score);
-      const p2Win = checkWinCondition(newPlayer2.score);
+      const p1Win = checkWinCondition(newPlayer1.score, gameSettings.winScore);
+      const p2Win = checkWinCondition(newPlayer2.score, gameSettings.winScore);
       if (p1Win || p2Win) {
         setGameOver(true);
         const winner = p1Win ? player1.name : player2.name;
@@ -383,7 +386,7 @@ export default function GamePlayScreen({
         setIsProcessing(false);
         return;
       }
-
+      
       // オンラインモード時はFirebaseに同期
       if (isOnlineMode) {
         syncGameState(newBoard, newPlayer1, newPlayer2, false);
@@ -462,7 +465,7 @@ export default function GamePlayScreen({
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: '#4D6869' }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
-            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={3} playerType={player1.type} /></div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={gameSettings.winScore} playerType={player1.type} /></div>
           </div>
           {/* VS */}
           <div className="text-lg sm:text-2xl font-extrabold text-gray-400 mb-6 select-none">VS</div>
@@ -474,7 +477,7 @@ export default function GamePlayScreen({
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: '#55B89C' }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
-            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={3} playerType={player2.type} /></div>
+            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={gameSettings.winScore} playerType={player2.type} /></div>
           </div>
         </div>
         {/* ゲーム盤面 */}
@@ -496,7 +499,7 @@ export default function GamePlayScreen({
             {isOnlineMode && roomId && (
               <div className="text-sm text-gray-400 font-semibold mb-4">
                 ルームID: <span className="text-blue-500 font-bold">{roomId}</span>
-              </div>
+          </div>
             )}
             <div className="flex gap-4">
               <button
@@ -544,7 +547,7 @@ export default function GamePlayScreen({
                 <div className="scale-75 sm:scale-100">
                   <GameGrid board={finalBoard} />
                 </div>
-              </div>
+          </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 sm:mt-4 w-full">
                 <button
                   onClick={handleGoHome}
@@ -560,12 +563,12 @@ export default function GamePlayScreen({
                 >
                   もう一度遊ぶ
                 </button>
-              </div>
+          </div>
             </div>
           </div>
         )}
-      </div>
-      
+          </div>
+          
       {/* 演出エフェクト */}
       <GameEffects
         comboVisible={comboVisible}
@@ -579,11 +582,11 @@ export default function GamePlayScreen({
 
       {/* Connect4成立時のポップアップ */}
       {connect4Visible && connect4Player && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-gradient-to-br from-emerald-50 to-white rounded-3xl shadow-2xl p-8 mx-4 max-w-sm text-center border-4 border-emerald-400 animate-bounce">
-            <div className="text-6xl mb-4 animate-pulse">⭐</div>
-            <div className="text-2xl font-bold text-emerald-600 mb-3">Connect4!</div>
-            <div className="text-lg font-semibold text-gray-800 bg-white rounded-xl p-3 shadow-inner">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl shadow-xl p-6 mx-4 max-w-sm text-center border-2 border-emerald-300">
+            <div className="text-4xl mb-3 text-emerald-500">⭐</div>
+            <div className="text-xl font-bold text-emerald-600 mb-2">Connect4!</div>
+            <div className="text-base font-semibold text-gray-700 bg-white rounded-lg p-2">
               {connect4Message}
             </div>
           </div>

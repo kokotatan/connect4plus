@@ -4,6 +4,8 @@ import { AILevel, getAllAICharacters, getAICharacter } from '../utils/aiLogic';
 import { generateRoomId, createRoom, joinRoom, checkRoomExists, testFirebaseConnection } from '../utils/firebase';
 import RulesPopup from '../components/RulesPopup';
 import AICharacterPopup from '../components/AICharacterPopup';
+import GameSettingsPanel from '../components/GameSettingsPanel';
+import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 
 export default function HomePage() {
   const [player1Name, setPlayer1Name] = useState('');
@@ -16,6 +18,7 @@ export default function HomePage() {
   const [selectedCharacter, setSelectedCharacter] = useState<AILevel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [firebaseConnected, setFirebaseConnected] = useState<boolean | null>(null);
+  const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const router = useRouter();
 
   // 招待URLから来た場合は/joinRoomにリダイレクト
@@ -96,7 +99,7 @@ export default function HomePage() {
 
   const handleStartAIGame = () => {
     if (aiPlayerName.trim()) {
-      router.push(`/aiGame?playerName=${encodeURIComponent(aiPlayerName.trim())}&aiLevel=${aiLevel}`);
+      router.push(`/aiGame?playerName=${encodeURIComponent(aiPlayerName.trim())}&aiLevel=${aiLevel}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}&soundType=${gameSettings.soundType}`);
     }
   };
 
@@ -258,6 +261,13 @@ export default function HomePage() {
             >
               AIと対戦開始
             </button>
+            
+            {/* ゲーム設定パネル（オフライン戦用） */}
+            <GameSettingsPanel
+              settings={gameSettings}
+              onSettingsChange={setGameSettings}
+              isVisible={true}
+            />
           </div>
         </div>
 

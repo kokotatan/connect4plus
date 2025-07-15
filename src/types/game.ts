@@ -26,3 +26,17 @@ export interface PlayerInfo {
   isActive: boolean;
   type: PlayerCharacterType;
 } 
+
+// ゲーム設定の型定義
+export interface GameSettings {
+  winScore: 1 | 3 | 5;           // 勝利に必要なスコア
+  timeLimit: 'none' | '30s' | '1m'; // 制限時間
+  soundType: 'typeA' | 'typeB';  // 音声設定
+}
+
+// デフォルト設定
+export const DEFAULT_GAME_SETTINGS: GameSettings = {
+  winScore: 3,
+  timeLimit: 'none',
+  soundType: 'typeA'
+}; 

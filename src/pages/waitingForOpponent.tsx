@@ -6,6 +6,7 @@ import RulesPopup from '../components/RulesPopup';
 import { ref, set, onValue, off, update } from 'firebase/database';
 import { db } from '../utils/firebase';
 import { createEmptyBoard } from '../utils/gameLogic';
+import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 
 const GRAYCAT_PLAYING = '/assets/Avater/PosingAvater/graycat_playing.png';
 const TIGER_PLAYING = '/assets/Avater/PosingAvater/tiger_playing.png';
@@ -54,11 +55,18 @@ export default function WaitingForOpponentScreen() {
   const [lotteryPhase, setLotteryPhase] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const router = useRouter();
-  const { roomId, player1Name, player2Name } = router.query;
+  const { roomId, player1Name, player2Name, winScore, timeLimit, soundType } = router.query;
   const playerInfo = getPlayerInfo();
   const mySessionId = playerInfo?.sessionId;
   const currentPlayerType = playerInfo?.isPlayer1 ? 'player1' : 'player2';
   const [readyState, setReadyState] = useState<{ player1: boolean; player2: boolean }>({ player1: false, player2: false });
+
+  // ゲーム設定を構築
+  const gameSettings: GameSettings = {
+    winScore: winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore,
+    timeLimit: (timeLimit as 'none' | '30s' | '1m') || DEFAULT_GAME_SETTINGS.timeLimit,
+    soundType: (soundType as 'typeA' | 'typeB') || DEFAULT_GAME_SETTINGS.soundType,
+  };
 
   // ルーム監視
   useEffect(() => {
@@ -66,7 +74,7 @@ export default function WaitingForOpponentScreen() {
       alert('ルームIDが無効です');
       router.push('/');
       return;
-    }
+}
     // ルーム監視開始
     const unsubscribe = watchRoom(roomId, (data: RoomData | null) => {
       console.log('watchRoom data:', data); // デバッグ用
@@ -117,7 +125,7 @@ export default function WaitingForOpponentScreen() {
               setSelectedPlayer(firstTurn);
             }, 1500);
             setTimeout(() => {
-              router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2?.name || '')}&firstTurn=${firstTurn}`);
+              router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2?.name || '')}&firstTurn=${firstTurn}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}&soundType=${gameSettings.soundType}`);
             }, 4000);
           }).catch((error) => {
             console.error('ゲーム状態初期化エラー:', error);

@@ -15,22 +15,29 @@ export default function ScoreGauge({ score, maxScore, playerType }: ScoreGaugePr
   // ピクセルアート風の枠色
   const borderColor = '#222';
 
+  // 全体幅を固定（80px）
+  const totalWidth = 80;
+  // 区画間のギャップ（2px）
+  const gap = 2;
+  // 区画幅を計算（全体幅からギャップ分を引いて分割）
+  const blockWidth = (totalWidth - gap * (maxScore - 1)) / maxScore;
+
   return (
-    <div className="flex items-center">
+    <div className="flex items-center" style={{ width: totalWidth }}>
       {[...Array(maxScore)].map((_, i) => (
         <div
           key={i}
           style={{
-            width: 18,
+            width: blockWidth,
             height: 18,
             background: i < score ? playerColor : '#fff',
             border: `2px solid ${borderColor}`,
             boxSizing: 'border-box',
             borderRadius: 3,
-            marginLeft: i === 0 ? 0 : -2, // 枠線分だけ重ねて隙間なく
+            marginRight: i < maxScore - 1 ? gap : 0, // 最後の区画以外にギャップを追加
             boxShadow: '0 1px #888',
             imageRendering: 'pixelated',
-            zIndex: 10 - i, // 重なり順で左が上
+            flexShrink: 0, // 区画が縮まないようにする
           }}
         />
       ))}
