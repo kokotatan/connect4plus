@@ -156,7 +156,30 @@ export default function AIGameScreen({ playerName, aiLevel }: AIGameScreenProps)
     
     // セルを置く
     let newBoard = gameBoard.map((row, rIdx) =>
-      row.map((cell, cIdx) => (rIdx === targetRow && cIdx === columnIndex ? { state: 'normal', player: playerType } : cell))
+      row.map((cell, cIdx) => {
+        if (rIdx === targetRow && cIdx === columnIndex) {
+          return { state: 'normal', player: playerType } as CellState;
+        }
+        // cellの型が不正な場合はemptyに矯正
+        if (
+          cell.state !== 'empty' &&
+          cell.state !== 'normal' &&
+          cell.state !== 'drop' &&
+          cell.state !== 'star'
+        ) {
+          return { state: 'empty' } as CellState;
+        }
+        // playerの型が不正な場合はemptyに矯正
+        if (
+          (cell as any).player &&
+          (cell as any).player !== 'graycat' &&
+          (cell as any).player !== 'tiger' &&
+          (cell as any).player !== 'ai'
+        ) {
+          return { state: 'empty' } as CellState;
+        }
+        return cell as CellState;
+      })
     );
     setGameBoard(newBoard);
 
