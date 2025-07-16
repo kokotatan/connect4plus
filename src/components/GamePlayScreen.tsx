@@ -265,7 +265,7 @@ export default function GamePlayScreen({
             const isMyConnect4 = (currentPlayerType === 'player1' && type === 'player1') || 
                                  (currentPlayerType === 'player2' && type === 'player2');
             
-            setConnect4Player(type);
+            setConnect4Player(type === 'player1' ? 'player1' : 'player2');
             setConnect4Message(
               isMyConnect4 
                 ? `${playerName}がConnect4しました！` 

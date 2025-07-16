@@ -1,6 +1,7 @@
 import React from 'react';
 import { CellState } from '../types/game';
 import Cell from './Cell';
+import { useTheme } from '../contexts/ThemeContext';
 
 export type GameGridProps = {
   board: CellState[][];
@@ -11,8 +12,6 @@ export type GameGridProps = {
   onColumnLeave?: () => void;
 };
 
-const BOARD_BG = 'rgba(217,242,225,0.7)'; // 透明度を加えて控えめに
-const CELL_BG = '#F9FFF9';
 const BOARD_WIDTH = 7;
 const BOARD_HEIGHT = 8;
 const CELL_SIZE = 44; // px
@@ -28,6 +27,8 @@ export const GameGrid: React.FC<GameGridProps> = ({
   onColumnHover,
   onColumnLeave,
 }) => {
+  const { colors } = useTheme();
+
   // ハイライトされた列の一番下の空セル位置を計算
   const getPreviewPosition = (col: number) => {
     for (let row = board.length - 1; row >= 0; row--) {
@@ -38,13 +39,26 @@ export const GameGrid: React.FC<GameGridProps> = ({
     return -1; // 列が満杯
   };
 
+  // プレイヤーの色を取得
+  const getPlayerColor = (playerType: 'player1' | 'player2') => {
+    return playerType === 'player1' ? colors.player1Color : colors.player2Color;
+  };
+
+  // プレビュー色を取得（現在のターンに応じて）
+  const getPreviewColor = () => {
+    // 現在のターンを判定（簡易的な方法）
+    const totalMoves = board.flat().filter(cell => cell.state !== 'empty').length;
+    const isPlayer1Turn = totalMoves % 2 === 0;
+    return isPlayer1Turn ? colors.player1Color : colors.player2Color;
+  };
+
   return (
     <div
       className="flex justify-center items-center"
       style={{
         width: BOARD_PIXEL_WIDTH,
         height: BOARD_PIXEL_HEIGHT,
-        background: BOARD_BG,
+        background: colors.boardBackground,
         borderRadius: 24,
         boxSizing: 'border-box',
         padding: BOARD_PADDING,
@@ -77,7 +91,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
                 height: BOARD_HEIGHT * CELL_SIZE + (BOARD_HEIGHT - 1) * CELL_GAP,
                 cursor: onColumnClick ? 'pointer' : 'default',
                 zIndex: 10,
-                background: isHighlighted ? 'rgba(52, 211, 153, 0.2)' : 'transparent',
+                background: isHighlighted ? `${colors.accentColor}33` : 'transparent',
                 borderRadius: 8,
                 transition: 'background-color 0.2s ease',
               }}
@@ -110,7 +124,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
                   style={{
                     width: '100%',
                     height: '100%',
-                    background: CELL_BG,
+                    background: colors.cellBackground,
                     borderRadius: '50%',
                     boxShadow: 'inset 0 2px 8px 0 #b0b0b0, 0 1px 2px #fff8',
                     display: 'flex',
@@ -123,7 +137,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
                     state={cell}
                     isHighlighted={false}
                   />
-                  {/* プレビュー表示（コマの色でパルス） */}
+                  {/* プレビュー表示（テーマ色でパルス） */}
                   {isPreview && (
                     <div
                       style={{
@@ -134,8 +148,8 @@ export const GameGrid: React.FC<GameGridProps> = ({
                         width: '80%',
                         height: '80%',
                         borderRadius: '50%',
-                        background: 'rgba(77, 104, 105, 0.3)', // プレイヤー1の色（薄いグレー）
-                        border: '2px solid rgba(77, 104, 105, 0.6)',
+                        background: `${getPreviewColor()}33`,
+                        border: `2px solid ${getPreviewColor()}66`,
                         animation: 'pulse 1s infinite',
                       }}
                     />

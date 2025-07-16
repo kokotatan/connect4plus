@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CellState } from '../types/game';
+import { useTheme } from '../contexts/ThemeContext';
 
 type CellProps = {
   state: CellState;
@@ -7,28 +8,20 @@ type CellProps = {
 };
 
 export const Cell: React.FC<CellProps> = ({ state, isHighlighted = false }) => {
-  // 色設計（ご指定の色）
-  const COLORS = {
-    graycat: '#4D6869',   // Graycat
-    tiger: '#55B89C',     // Tiger
-    win: '#9747FF',       // 勝利時
-    board: '#D9F2E1',     // 盤面背景
-    accent: '#EF7DB4',    // アクセント
-    empty: '#F9FFF9',     // 空
-  };
+  const { colors } = useTheme();
 
   const getCellColor = () => {
     switch (state.state) {
       case 'empty':
-        return COLORS.empty;
+        return colors.cellBackground;
       case 'normal':
-        return state.player === 'player1' ? COLORS.graycat : COLORS.tiger;
+        return state.player === 'player1' ? colors.player1Color : colors.player2Color;
       case 'drop':
-        return state.player === 'player1' ? COLORS.graycat : COLORS.tiger;
+        return state.player === 'player1' ? colors.player1Color : colors.player2Color;
       case 'star':
-        return COLORS.win;
+        return '#9747FF'; // 星セルは固定色
       default:
-        return COLORS.empty;
+        return colors.cellBackground;
     }
   };
 

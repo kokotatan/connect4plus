@@ -6,6 +6,7 @@ import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
 import { BGMControlButton } from '../components/BGMControlButton';
 import { useBGM } from '../contexts/BGMContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { CellState, PlayerType, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
 import { AILevel, aiMove, getAIAvatar, getAIName, getAIThinkingTime, getAllAICharacters } from '../utils/aiLogic';
@@ -19,6 +20,7 @@ interface AIGameScreenProps {
 export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAULT_GAME_SETTINGS }: AIGameScreenProps) {
   const router = useRouter();
   const { switchToGameBGM, switchToHomeBGM, fadeIn, fadeOut } = useBGM();
+  const { colors } = useTheme();
   
   // プレイヤー情報
   const [player1, setPlayer1] = useState<PlayerInfo>({
@@ -418,7 +420,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
           
           // Connect4成立時の視覚的フィードバック
           const playerName = type === 'player1' ? player1.name : player2.name;
-          setConnect4Player(type);
+          setConnect4Player(type === 'player1' ? 'player1' : 'player2');
           setConnect4Message(`${playerName}がConnect4しました！`);
           setConnect4Visible(true);
           
@@ -562,21 +564,48 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     // ターン交代
     setPlayer1(prev => ({ ...prev, isTurn: !prev.isTurn }));
     setPlayer2(prev => ({ ...prev, isTurn: !prev.isTurn }));
+    
+    // ターン交代の確認ログ
+    console.log('ターン交代完了:', {
+      newPlayer1Turn: !player1.isTurn,
+      newPlayer2Turn: !player2.isTurn,
+      player2Type: player2.type
+    });
+    
     setIsProcessing(false);
   }, [isProcessing, gameOver, player1.isTurn, player1.score, player2.score, gameBoard, gameSettings.winScore]);
 
   // AIの手番を監視
   useEffect(() => {
-    console.log('AI手番監視:', { player2Turn: player2.isTurn, isProcessing, gameOver, gameStarted });
-    if (player2.isTurn && !isProcessing && !gameOver && gameStarted) {
-      console.log('AI手番開始');
-      // AI先手の場合は少し遅延させてから開始（演出のため）
-      const delay = showFirstTurnMessage ? 2500 : 1000; // メッセージ表示中は2.5秒、通常は1秒遅延
+    // AIは「player2.isTurn && !player1.isTurn && !isProcessing && !gameOver && gameStarted」の時だけ動く
+    // より厳格な条件チェックを追加
+    const shouldAIMove = player2.isTurn && 
+                        !player1.isTurn && 
+                        !isProcessing && 
+                        !gameOver && 
+                        gameStarted &&
+                        player2.type === 'ai' && // AIプレイヤーであることを確認
+                        !showFirstTurnMessage; // 初回メッセージ表示中は動かない
+    
+    console.log('AI手番監視:', {
+      player2Turn: player2.isTurn,
+      player1Turn: player1.isTurn,
+      isProcessing,
+      gameOver,
+      gameStarted,
+      player2Type: player2.type,
+      showFirstTurnMessage,
+      shouldAIMove
+    });
+    
+    if (shouldAIMove) {
+      const delay = 1000; // 固定で1秒後に実行
+      console.log(`AI手番開始: ${delay}ms後に実行`);
       setTimeout(() => {
         handleAITurn();
       }, delay);
     }
-  }, [player2.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, handleAITurn]);
+  }, [player2.isTurn, player1.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, handleAITurn, player2.type]);
 
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = useCallback(async (columnIndex: number) => {
@@ -597,8 +626,11 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
   // 再戦ボタン押下時
   const handleRematch = () => {
-    // 再戦時はBGMを継続（フェードアウトしない）
-    router.push('/');
+    // タイトルに戻る時はホームBGMに切り替え
+    switchToHomeBGM();
+    setTimeout(() => {
+      router.push('/');
+    }, 500);
   };
 
   // 強さ選択ポップアップでゲーム開始
@@ -659,32 +691,42 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       // 4秒後にゲーム開始
       setTimeout(() => {
         setGameStarted(true);
-        setPlayer1(prev => ({ ...prev, isTurn: firstTurn === 'player1' }));
-        setPlayer2(prev => ({ ...prev, isTurn: firstTurn === 'player2' }));
+        
+        // ターン設定を確実に同期
+        const player1Turn = firstTurn === 'player1';
+        const player2Turn = firstTurn === 'player2';
+        
+        console.log('ゲーム開始時のターン設定:', {
+          firstTurn,
+          player1Turn,
+          player2Turn,
+          player2Type: player2.type
+        });
+        
+        setPlayer1(prev => ({ ...prev, isTurn: player1Turn }));
+        setPlayer2(prev => ({ ...prev, isTurn: player2Turn }));
         
         // フェードインで再生開始
         setTimeout(() => {
           fadeIn(2000); // 2秒でフェードイン
         }, 100);
         
-        // AI先手の場合はメッセージを表示
-        if (firstTurn === 'player2') {
-          setShowFirstTurnMessage(true);
-          setTimeout(() => {
-            setShowFirstTurnMessage(false);
-          }, 2000); // 2秒間表示
-        }
+        // AI先手メッセージ表示処理を削除
       }, 2500); // 1500ms + 2500ms = 4000ms
     }, 1500);
   };
 
-  // ゲーム開始ボタンが表示される時にBGMを切り替え
+  // BGM制御
+  // ゲーム開始時に必ずゲームBGMを流す
   useEffect(() => {
-    if (!gameStarted && !gameStarting) {
-      console.log('AI戦準備完了、ゲームBGMに切り替え');
+    if (gameStarted) {
+      console.log('ゲーム開始時のBGM切り替え');
       switchToGameBGM();
+      setTimeout(() => {
+        fadeIn(2000);
+      }, 100);
     }
-  }, [gameStarted, gameStarting, switchToGameBGM]);
+  }, [gameStarted]); // fadeInとswitchToGameBGMを依存配列から除外
 
   // ゲーム開始前の画面
   if (!gameStarted) {
@@ -706,7 +748,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
               <img src={player1.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
               <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
                 <span className="truncate" title={player1.name}>{player1.name}</span>
-                <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#4D6869' }} title="あなたのコマ色" />
+                <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: colors.player1Color }} title="あなたのコマ色" />
               </div>
             </div>
             
@@ -718,7 +760,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
               <img src={player2.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
               <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
                 <span className="truncate" title={player2.name}>{player2.name}</span>
-                <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#55B89C' }} title="AIのコマ色" />
+                <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: colors.player2Color }} title="AIのコマ色" />
               </div>
             </div>
           </div>
@@ -790,7 +832,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
             <img src={player1.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
             <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
               <span className="truncate" title={player1.name}>{player1.name}</span>
-              <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#4D6869' }} title="あなたのコマ色" />
+              <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: colors.player1Color }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
             <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={gameSettings.winScore} playerType={player1.type} /></div>
@@ -804,7 +846,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
             <img src={player2.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
             <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
               <span className="truncate" title={player2.name}>{player2.name}</span>
-              <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: '#55B89C' }} title="AIのコマ色" />
+              <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: colors.player2Color }} title="AIのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
             <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={gameSettings.winScore} playerType={player2.type} /></div>
@@ -820,15 +862,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
         {/* ゲーム盤面 */}
         <div className="flex flex-col items-center w-full">
-          {/* AI先手メッセージ */}
-          {showFirstTurnMessage && (
-            <div className="mb-4 px-6 py-3 bg-emerald-100 border-2 border-emerald-300 rounded-xl shadow-lg animate-pulse">
-              <div className="text-center">
-                <div className="text-lg font-bold text-emerald-700 mb-1">AIの番です</div>
-                <div className="text-sm text-emerald-600">AIが考え中...</div>
-              </div>
-            </div>
-          )}
+          {/* AI先手メッセージを削除 */}
           
           <div className="flex justify-center items-center relative">
             <div className="rounded-3xl shadow-2xl p-4 bg-[#D9F2E1]">

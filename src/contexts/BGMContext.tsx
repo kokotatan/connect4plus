@@ -33,12 +33,22 @@ interface BGMProviderProps {
 
 export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(false); // デフォルトでオフ
+  const [isEnabled, setIsEnabled] = useState(true); // デフォルトでオンに変更
   const [currentTime, setCurrentTime] = useState(0);
   const [currentBGM, setCurrentBGM] = useState<'home' | 'game'>('home');
   const homeAudioRef = useRef<HTMLAudioElement | null>(null);
   const gameAudioRef = useRef<HTMLAudioElement | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const play = () => {
+    console.log('BGM play() 呼び出し:', { currentBGM, isEnabled, currentAudioRef: !!currentAudioRef.current });
+    if (currentAudioRef.current && isEnabled && !isPlaying) {
+      // 既に再生中の場合は何もしない
+      currentAudioRef.current.play().catch(error => {
+        console.error('BGM再生失敗:', error);
+      });
+    }
+  };
 
   // オーディオ要素の初期化
   useEffect(() => {
@@ -123,17 +133,29 @@ export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
     if (homeAudioRef.current && gameAudioRef.current && currentBGM === 'home') {
       console.log('BGM初期化後の確認: ホームBGMが正しく設定されています');
       currentAudioRef.current = homeAudioRef.current;
+      
+      // 初期化完了後にホームBGMを再生開始（ユーザーインタラクション後）
+      const handleUserInteraction = () => {
+        if (isEnabled && !isPlaying && currentAudioRef.current === homeAudioRef.current) {
+          console.log('初期化後のホームBGM再生開始');
+          play();
+        }
+        document.removeEventListener('click', handleUserInteraction);
+        document.removeEventListener('keydown', handleUserInteraction);
+        document.removeEventListener('touchstart', handleUserInteraction);
+      };
+      
+      document.addEventListener('click', handleUserInteraction);
+      document.addEventListener('keydown', handleUserInteraction);
+      document.addEventListener('touchstart', handleUserInteraction);
+      
+      return () => {
+        document.removeEventListener('click', handleUserInteraction);
+        document.removeEventListener('keydown', handleUserInteraction);
+        document.removeEventListener('touchstart', handleUserInteraction);
+      };
     }
-  }, [currentBGM]);
-
-  const play = () => {
-    console.log('BGM play() 呼び出し:', { currentBGM, isEnabled, currentAudioRef: !!currentAudioRef.current });
-    if (currentAudioRef.current && isEnabled) {
-      currentAudioRef.current.play().catch(error => {
-        console.error('BGM再生失敗:', error);
-      });
-    }
-  };
+  }, [currentBGM]); // 依存配列をcurrentBGMのみに制限
 
   const pause = () => {
     console.log('BGM pause() 呼び出し');
@@ -222,8 +244,11 @@ export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
   };
 
   const switchToGameBGM = () => {
-    console.log('BGM switchToGameBGM() 呼び出し:', { currentBGM });
-    if (currentBGM === 'game') return; // 既にゲームBGMの場合は何もしない
+    console.log('BGM switchToGameBGM() 呼び出し:', { currentBGM, isPlaying, isEnabled });
+    if (currentBGM === 'game') {
+      console.log('既にゲームBGMのため、切り替えをスキップ');
+      return; // 既にゲームBGMの場合は何もしない
+    }
     
     const wasPlaying = isPlaying;
     const currentTime = currentAudioRef.current?.currentTime || 0;
@@ -242,7 +267,8 @@ export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
     // 再生位置を同期
     if (currentAudioRef.current) {
       currentAudioRef.current.currentTime = currentTime;
-      if (wasPlaying && isEnabled) {
+      // 有効化されている場合は強制的に再生
+      if (isEnabled) {
         currentAudioRef.current.play().catch(error => {
           console.error('ゲームBGM再生失敗:', error);
         });
@@ -251,8 +277,19 @@ export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
   };
 
   const switchToHomeBGM = () => {
-    console.log('BGM switchToHomeBGM() 呼び出し:', { currentBGM });
-    if (currentBGM === 'home') return; // 既にホームBGMの場合は何もしない
+    console.log('BGM switchToHomeBGM() 呼び出し:', { currentBGM, isPlaying, isEnabled });
+    if (currentBGM === 'home') {
+      console.log('既にホームBGMのため、切り替えをスキップ');
+      // 既にホームBGMでも、再生されていない場合は再生を試行（ただし無限ループを防ぐ）
+      if (isEnabled && !isPlaying && currentAudioRef.current === homeAudioRef.current) {
+        console.log('ホームBGMが停止中なので再生を試行');
+        // 一度だけ再生を試行し、失敗しても再試行しない
+        currentAudioRef.current.play().catch(error => {
+          console.error('ホームBGM再生失敗:', error);
+        });
+      }
+      return;
+    }
     
     const wasPlaying = isPlaying;
     const currentTime = currentAudioRef.current?.currentTime || 0;
@@ -271,7 +308,8 @@ export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
     // 再生位置を同期
     if (currentAudioRef.current) {
       currentAudioRef.current.currentTime = currentTime;
-      if (wasPlaying && isEnabled) {
+      // 有効化されている場合は強制的に再生
+      if (isEnabled) {
         currentAudioRef.current.play().catch(error => {
           console.error('ホームBGM再生失敗:', error);
         });

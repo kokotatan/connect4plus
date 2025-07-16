@@ -26,7 +26,7 @@ export const BGMControlButton: React.FC<BGMControlButtonProps> = ({
       }, 100);
     } else {
       // 2回目以降は再生/停止を切り替え
-      console.log('BGM再生/停止切り替え');
+      console.log('BGM再生/停止切り替え:', { isPlaying });
       toggle();
     }
   };
@@ -38,10 +38,10 @@ export const BGMControlButton: React.FC<BGMControlButtonProps> = ({
   };
 
   const getIcon = () => {
-    if (!isEnabled || !isPlaying) {
-      return '🔇'; // 無効状態または停止中（オフのメガホン）
+    if (!isEnabled) {
+      return '🔇'; // 無効状態（オフのメガホン）
     }
-    return '🔊'; // 再生中（オンのメガホン）
+    return isPlaying ? '🔊' : '🔇'; // 再生中（オンのメガホン）または停止中（オフのメガホン）
   };
 
   const getLabel = () => {
@@ -81,7 +81,12 @@ export const BGMControlButton: React.FC<BGMControlButtonProps> = ({
         )}
       </button>
       
-      {/* 斜線表示を削除 - 最初の状態でも斜線なし */}
+      {/* 停止中は赤い斜線を表示 */}
+      {isEnabled && !isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-full h-0.5 bg-red-500 transform rotate-45"></div>
+        </div>
+      )}
     </div>
   );
 }; 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { PlayerCharacterType } from '../types/game';
+import { useTheme } from '../contexts/ThemeContext';
 
 type ScoreGaugeProps = {
   score: number;
@@ -8,28 +9,36 @@ type ScoreGaugeProps = {
 };
 
 export default function ScoreGauge({ score, maxScore, playerType }: ScoreGaugeProps) {
-  let playerColor = '#4D6869'; // デフォルト色
-  if (playerType === 'graycat') playerColor = '#4D6869';
-  if (playerType === 'tiger') playerColor = '#55B89C';
-  if (playerType === 'ai') playerColor = '#55B89C';
-  // ピクセルアート風の枠色
-  const borderColor = '#222';
+  const { colors } = useTheme();
+  
+  // プレイヤータイプに応じた色を取得
+  const getPlayerColor = () => {
+    if (playerType === 'graycat') {
+      return colors.player1Color;
+    } else if (playerType === 'tiger' || playerType === 'ai') {
+      return colors.player2Color;
+    }
+    return colors.player1Color; // デフォルト
+  };
 
-  // 全体幅を固定（80px）
+  const playerColor = getPlayerColor();
+
+  // 全体幅を固定（ユーザー情報の枠に合わせて）
   const totalWidth = 80;
   const height = 18;
 
   return (
     <div 
-      className="flex items-center" 
+      className="flex items-center justify-center" 
       style={{ 
         width: totalWidth, 
         height: height,
-        border: `2px solid ${borderColor}`,
+        border: `2px solid ${colors.scoreGaugeBorder}`,
         borderRadius: 3,
         boxShadow: '0 1px #888',
         imageRendering: 'pixelated',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        background: colors.scoreGaugeBackground
       }}
     >
       {[...Array(maxScore)].map((_, i) => (
@@ -38,8 +47,8 @@ export default function ScoreGauge({ score, maxScore, playerType }: ScoreGaugePr
           style={{
             width: totalWidth / maxScore,
             height: '100%',
-            background: i < score ? playerColor : '#fff',
-            borderRight: i < maxScore - 1 ? `1px solid ${borderColor}` : 'none',
+            background: i < score ? playerColor : colors.scoreGaugeBackground,
+            borderRight: i < maxScore - 1 ? `1px solid ${colors.scoreGaugeBorder}` : 'none',
             boxSizing: 'border-box',
             flexShrink: 0,
           }}

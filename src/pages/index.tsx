@@ -6,7 +6,9 @@ import RulesPopup from '../components/RulesPopup';
 import AICharacterPopup from '../components/AICharacterPopup';
 import GameSettingsPanel from '../components/GameSettingsPanel';
 import { BGMControlButton } from '../components/BGMControlButton';
+import { ThemeSelector } from '../components/ThemeSelector';
 import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
+import { useBGM } from '../contexts/BGMContext';
 
 export default function HomePage() {
   const [player1Name, setPlayer1Name] = useState('');
@@ -21,6 +23,7 @@ export default function HomePage() {
   const [firebaseConnected, setFirebaseConnected] = useState<boolean | null>(null);
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const router = useRouter();
+  const { switchToHomeBGM, fadeIn } = useBGM();
 
   // 招待URLから来た場合は/joinRoomにリダイレクト
   useEffect(() => {
@@ -28,6 +31,21 @@ export default function HomePage() {
       router.replace(`/joinRoom?roomId=${router.query.roomId}`);
     }
   }, [router.isReady, router.query.roomId]);
+
+  // ホームページロード時にホームBGMを確実に再生
+  useEffect(() => {
+    console.log('ホームページロード: ホームBGMを確実に再生');
+    // 初回ロード時のみ実行されるようにフラグを追加
+    const timer = setTimeout(() => {
+      switchToHomeBGM();
+      // 少し遅延してからフェードイン
+      setTimeout(() => {
+        fadeIn(2000);
+      }, 100);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []); // 依存配列を空にして初回のみ実行
 
   // Firebase接続テスト
   useEffect(() => {
@@ -89,7 +107,7 @@ export default function HomePage() {
         console.error('ルーム参加エラー:', error);
         if (error instanceof Error) {
           alert(error.message);
-        } else {
+      } else {
           alert('ルーム参加に失敗しました。もう一度お試しください。');
         }
       } finally {
@@ -285,6 +303,11 @@ export default function HomePage() {
             onClose={() => setShowCharacterPopup(false)}
           />
         )}
+
+        {/* テーマセレクター */}
+        <div className="w-full flex justify-center mt-4">
+          <ThemeSelector />
+        </div>
       </div>
       
       {/* 固定BGMコントロールボタン */}
