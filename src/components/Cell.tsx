@@ -39,7 +39,7 @@ export const Cell: React.FC<CellProps> = ({ state, isHighlighted = false }) => {
 
   return (
     <div className="w-10 h-10 relative">
-      <div
+    <div
         className={`w-10 h-10 rounded-full transition-all duration-300 ${
           state.state === 'drop' ? 'animate-bounce' : ''
         } ${isHighlighted && state.state === 'empty' ? 'outline outline-2 outline-emerald-500' : ''}`}
@@ -112,8 +112,8 @@ export const Cell: React.FC<CellProps> = ({ state, isHighlighted = false }) => {
           }
         `}</style>
       )}
-    </div>
-  );
+  </div>
+);
 };
 
 export default Cell; 

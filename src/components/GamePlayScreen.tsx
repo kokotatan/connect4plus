@@ -233,9 +233,9 @@ export default function GamePlayScreen({
       // セルを置く
       let newBoard: CellState[][] = gameBoard.map((row, rIdx) =>
         row.map((cell, cIdx) => (rIdx === targetRow && cIdx === columnIndex ? { state: 'normal', player: playerType } : cell))
-      );
+    );
       setGameBoard(newBoard);
-      
+    
       // 盤面が安定するまで両プレイヤーで連鎖判定
       let comboing = true;
       let localScore1 = 0;
@@ -353,7 +353,7 @@ export default function GamePlayScreen({
           playerType: 'player2',
           position: { x: window.innerWidth * 0.75, y: window.innerHeight * 0.3 }
         }]);
-        setTimeout(() => {
+          setTimeout(() => {
           setScoreEffects(prev => prev.filter(effect => effect.id !== effectId));
         }, 1500);
       }
@@ -377,9 +377,9 @@ export default function GamePlayScreen({
         setTimeout(() => setFireworkVisible(false), 3000);
         syncGameState(newBoard, newPlayer1, newPlayer2, true, winner);
         setIsProcessing(false);
-        return;
+            return;
       }
-        
+      
       // 引き分け判定
       if (newBoard.every(row => row.every(cell => cell.state !== 'empty'))) {
         setGameOver(true);
@@ -401,7 +401,7 @@ export default function GamePlayScreen({
       setIsProcessing(false);
     }
   };
-    
+
   // ハイライト
   const handleColumnHover = (col: number) => {
     if (isProcessing || gameOver) return;
@@ -589,7 +589,7 @@ export default function GamePlayScreen({
 
       {/* ルール説明ポップアップ */}
       <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
-
+          
       {/* Connect4成立時のポップアップ */}
       {connect4Visible && connect4Player && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">

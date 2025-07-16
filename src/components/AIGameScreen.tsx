@@ -341,15 +341,46 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     // AIの手を決定（現在のAI強度を使用）
     const aiColumn = aiMove(gameBoard, currentAILevel);
     if (aiColumn !== -1) {
-      // handleColumnClickを直接呼び出し
-      await handleColumnClickDirect(aiColumn);
+      // handleColumnClickを直接呼び出し（AIの手番として明示）
+      await handleColumnClickDirect(aiColumn, 'ai');
     }
   }, [isProcessing, gameOver, aiLevel, selectedStrength, player2.name, gameBoard]);
 
   // 直接的なセルクリック処理（循環参照を避けるため）
-  const handleColumnClickDirect = useCallback(async (columnIndex: number) => {
+  const handleColumnClickDirect = useCallback(async (columnIndex: number, caller?: 'ai' | 'player') => {
     if (isProcessing || gameOver) return;
-    const playerType: PlayerType = player1.isTurn ? 'player1' : 'player2';
+    
+    // 呼び出し元に基づいてプレイヤータイプを決定
+    let playerType: PlayerType;
+    if (caller === 'ai') {
+      // AIの手番処理から呼び出された場合は確実にplayer2
+      playerType = 'player2';
+    } else {
+      // プレイヤーのクリックから呼び出された場合はplayer1
+      playerType = 'player1';
+    }
+    
+    console.log('=== handleColumnClickDirect実行 ===');
+    console.log('入力パラメータ:', {
+      columnIndex,
+      caller,
+      player1Turn: player1.isTurn,
+      player2Turn: player2.isTurn,
+      playerType,
+      isProcessing,
+      gameOver
+    });
+    console.log('AI判定:', {
+      isAITurn: player2.isTurn,
+      isPlayerTurn: player1.isTurn,
+      player2Type: player2.type,
+      player2Name: player2.name
+    });
+    console.log('コマ配置:', {
+      placingAs: playerType,
+      expectedColor: playerType === 'player1' ? 'player1Color' : 'player2Color'
+    });
+    
     if (isColumnFull(gameBoard, columnIndex)) return;
     
     // 一番下の空セルを探す
@@ -370,6 +401,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     let newBoard = gameBoard.map((row, rIdx) =>
       row.map((cell, cIdx) => {
         if (rIdx === targetRow && cIdx === columnIndex) {
+          console.log(`コマ配置実行: [${rIdx}, ${cIdx}] = ${playerType} (呼び出し元: ${caller})`);
           return { state: 'normal', player: playerType } as CellState;
         }
         // cellの型が不正な場合はemptyに矯正
@@ -587,7 +619,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
                         player2.type === 'ai' && // AIプレイヤーであることを確認
                         !showFirstTurnMessage; // 初回メッセージ表示中は動かない
     
-    console.log('AI手番監視:', {
+    console.log('=== AI手番監視 ===');
+    console.log('条件チェック:', {
       player2Turn: player2.isTurn,
       player1Turn: player1.isTurn,
       isProcessing,
@@ -596,6 +629,19 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       player2Type: player2.type,
       showFirstTurnMessage,
       shouldAIMove
+    });
+    console.log('AI動作判定:', {
+      isAITurn: player2.isTurn,
+      isPlayerTurn: player1.isTurn,
+      canAIMove: shouldAIMove,
+      reason: !shouldAIMove ? 
+        (!player2.isTurn ? 'AIの手番ではない' :
+         player1.isTurn ? 'プレイヤーの手番' :
+         isProcessing ? '処理中' :
+         gameOver ? 'ゲーム終了' :
+         !gameStarted ? 'ゲーム未開始' :
+         player2.type !== 'ai' ? 'AIプレイヤーではない' :
+         showFirstTurnMessage ? '初回メッセージ表示中' : 'その他') : 'AI動作可能'
     });
     
     if (shouldAIMove) {
@@ -611,7 +657,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   const handleColumnClick = useCallback(async (columnIndex: number) => {
     // プレイヤーの手番のみ処理
     if (player1.isTurn) {
-      await handleColumnClickDirect(columnIndex);
+      await handleColumnClickDirect(columnIndex, 'player');
     }
   }, [player1.isTurn, handleColumnClickDirect]);
 
@@ -685,8 +731,16 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     
     setTimeout(() => {
       setLotteryPhase(true);
-      const firstTurn = Math.random() < 0.5 ? 'player1' : 'player2';
+      const randomValue = Math.random(); // 一度だけ生成
+      const firstTurn = randomValue < 0.5 ? 'player1' : 'player2';
       setSelectedPlayer(firstTurn);
+      
+      console.log('先手抽選結果:', {
+        randomValue, // 同じ値を使用
+        firstTurn,
+        player1Name: player1.name,
+        player2Name: player2.name
+      });
       
       // 4秒後にゲーム開始
       setTimeout(() => {

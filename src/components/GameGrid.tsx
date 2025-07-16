@@ -155,8 +155,8 @@ export const GameGrid: React.FC<GameGridProps> = ({
                     />
                   )}
                 </div>
-              </div>
-            );
+  </div>
+);
           })
         )}
       </div>

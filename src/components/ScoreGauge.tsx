@@ -42,8 +42,8 @@ export default function ScoreGauge({ score, maxScore, playerType }: ScoreGaugePr
       }}
     >
       {[...Array(maxScore)].map((_, i) => (
-        <div
-          key={i}
+      <div
+        key={i}
           style={{
             width: totalWidth / maxScore,
             height: '100%',
@@ -53,7 +53,7 @@ export default function ScoreGauge({ score, maxScore, playerType }: ScoreGaugePr
             flexShrink: 0,
           }}
         />
-      ))}
-    </div>
-  );
+    ))}
+  </div>
+);
 }; 
