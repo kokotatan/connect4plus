@@ -955,17 +955,23 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
         {/* 最強AI用数式背景 */}
         {showMathBackground && (
-          <div className="fixed inset-0 pointer-events-none z-5">
+          <div className="fixed inset-0 pointer-events-none z-30">
+            {/* 暗いオーバーレイ */}
+            <div className="absolute inset-0 bg-black/15"></div>
+            
             <div className="absolute inset-0 overflow-hidden">
-              {[...Array(20)].map((_, i) => (
+              {[...Array(25)].map((_, i) => (
                 <div
                   key={i}
-                  className="absolute text-purple-200/20 text-xs font-mono animate-pulse"
+                  className="absolute text-purple-400/60 text-sm font-mono animate-pulse font-bold"
                   style={{
                     left: `${Math.random() * 100}%`,
                     top: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 2}s`,
-                    animationDuration: `${3 + Math.random() * 2}s`
+                    animationDelay: `${Math.random() * 3}s`,
+                    animationDuration: `${4 + Math.random() * 3}s`,
+                    fontSize: `${14 + Math.random() * 10}px`,
+                    textShadow: '0 0 12px rgba(147, 51, 234, 0.8), 0 0 20px rgba(147, 51, 234, 0.4)',
+                    filter: 'drop-shadow(0 0 4px rgba(147, 51, 234, 0.6))'
                   }}
                 >
                   {[
@@ -988,8 +994,13 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
                     'lcm(x,y)',
                     'φ(n)',
                     'ζ(s)',
-                    'Γ(z)'
-                  ][i % 20]}
+                    'Γ(z)',
+                    '∀x∈ℝ',
+                    '∃y∈ℂ',
+                    'P(A|B)',
+                    'H(p)',
+                    'I(X;Y)'
+                  ][i % 25]}
                 </div>
               ))}
             </div>
