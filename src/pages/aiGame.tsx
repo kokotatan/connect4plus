@@ -6,13 +6,12 @@ import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 
 export default function AIGamePage() {
   const router = useRouter();
-  const { playerName, aiLevel, winScore, timeLimit, soundType } = router.query;
+  const { playerName, aiLevel, winScore, timeLimit } = router.query;
 
   // ゲーム設定を構築
   const gameSettings: GameSettings = {
     winScore: winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore,
     timeLimit: (timeLimit as 'none' | '30s' | '1m') || DEFAULT_GAME_SETTINGS.timeLimit,
-    soundType: (soundType as 'typeA' | 'typeB') || DEFAULT_GAME_SETTINGS.soundType,
   };
 
   // パラメータが読み込まれるまで待機

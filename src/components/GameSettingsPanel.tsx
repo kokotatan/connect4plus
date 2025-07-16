@@ -71,19 +71,6 @@ export default function GameSettingsPanel({
             </select>
           </div>
 
-          {/* 音声設定 */}
-          <div>
-            <label className="block text-xs text-gray-600 mb-1">音声設定</label>
-            <select
-              value={settings.soundType}
-              onChange={(e) => handleSettingChange('soundType', e.target.value)}
-              className="w-full text-xs p-2 border border-gray-300 rounded bg-white focus:outline-none focus:border-emerald-400"
-            >
-              <option value="typeA">タイプA</option>
-              <option value="typeB">タイプB</option>
-            </select>
-          </div>
-
           {/* リセットボタン */}
           <button
             onClick={() => onSettingsChange(DEFAULT_GAME_SETTINGS)}

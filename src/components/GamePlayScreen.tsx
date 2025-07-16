@@ -4,7 +4,8 @@ import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
 import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
-import BackgroundMusic from '../components/BackgroundMusic';
+import { BGMControlButton } from '../components/BGMControlButton';
+import { useBGM } from '../contexts/BGMContext';
 import { CellState, PlayerType, PlayerInfo } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
 import { ref, set, onValue, off, update } from 'firebase/database';
@@ -34,6 +35,7 @@ export default function GamePlayScreen({
   gameSettings = DEFAULT_GAME_SETTINGS
 }: GamePlayScreenProps) {
   const router = useRouter();
+  const { switchToHomeBGM } = useBGM();
   const [player1, setPlayer1] = useState<PlayerInfo>({ ...initialPlayer1, avatar: AVATERS.player1 });
   const [player2, setPlayer2] = useState<PlayerInfo>({ ...initialPlayer2, avatar: AVATERS.player2 });
   const [gameBoard, setGameBoard] = useState<CellState[][]>(createEmptyBoard());
@@ -430,6 +432,7 @@ export default function GamePlayScreen({
   const handleRematch = () => {
     // オンラインモード時はルームの対戦待機画面に移動（ルームID付き）
     if (isOnlineMode && roomId) {
+      // 再戦時はBGMを継続（フェードアウトしない）
       // ready状態をリセットしてから遷移
       const readyRef = ref(db, `rooms/${roomId}/ready`);
       set(readyRef, { player1: false, player2: false });
@@ -437,12 +440,18 @@ export default function GamePlayScreen({
       return;
     }
     // オフライン・AI戦の場合は従来通り
-    router.push('/waitingForOpponent');
+    setTimeout(() => {
+      router.push('/waitingForOpponent');
+    }, 500);
   };
 
   // タイトルに戻るボタン押下時
   const handleGoHome = () => {
-    router.push('/');
+    // ホームBGMに切り替えてから遷移
+    switchToHomeBGM();
+    setTimeout(() => {
+      router.push('/');
+    }, 500);
   };
 
   // UI
@@ -594,8 +603,10 @@ export default function GamePlayScreen({
         </div>
       )}
 
-      {/* 背景BGM */}
-      <BackgroundMusic isPlaying={false} volume={0.2} showControls={true} />
+      {/* BGMコントロールボタン（固定位置） */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
+      </div>
 
     </main>
   );

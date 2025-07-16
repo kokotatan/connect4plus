@@ -337,7 +337,7 @@ export const getAIThinkingTime = (level: AILevel): number => {
     case AILevel.ADVANCED:
       return 3000 + Math.random() * 4000; // 3.0-7.0秒
     case AILevel.EXPERT:
-      return 4000 + Math.random() * 6000; // 4.0-10.0秒
+      return 2000 + Math.random() * 3000; // 2.0-5.0秒（短縮）
     default:
       return 1000;
   }

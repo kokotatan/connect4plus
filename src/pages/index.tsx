@@ -5,6 +5,7 @@ import { generateRoomId, createRoom, joinRoom, checkRoomExists, testFirebaseConn
 import RulesPopup from '../components/RulesPopup';
 import AICharacterPopup from '../components/AICharacterPopup';
 import GameSettingsPanel from '../components/GameSettingsPanel';
+import { BGMControlButton } from '../components/BGMControlButton';
 import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 
 export default function HomePage() {
@@ -99,7 +100,7 @@ export default function HomePage() {
 
   const handleStartAIGame = () => {
     if (aiPlayerName.trim()) {
-      router.push(`/aiGame?playerName=${encodeURIComponent(aiPlayerName.trim())}&aiLevel=${aiLevel}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}&soundType=${gameSettings.soundType}`);
+      router.push(`/aiGame?playerName=${encodeURIComponent(aiPlayerName.trim())}&aiLevel=${aiLevel}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
     }
   };
 
@@ -284,6 +285,11 @@ export default function HomePage() {
             onClose={() => setShowCharacterPopup(false)}
           />
         )}
+      </div>
+      
+      {/* 固定BGMコントロールボタン */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
       </div>
     </div>
   );

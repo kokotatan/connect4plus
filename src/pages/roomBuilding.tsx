@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useRouter } from 'next/router';
+import { BGMControlButton } from '../components/BGMControlButton';
 
 export default function RoomBuildingScreen() {
   const router = useRouter();
@@ -29,6 +30,11 @@ export default function RoomBuildingScreen() {
       {/* Connect4写真をカードの下に表示 */}
       <div className="flex justify-center items-center w-full mt-2 mb-2">
         <img className="w-40 h-40 object-contain" src="/assets/photo/connect4.png" alt="Connect4" />
+      </div>
+      
+      {/* BGMコントロールボタン（固定位置） */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
       </div>
       
     </Layout>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useRouter } from 'next/router';
 import GameSettingsPanel from '../components/GameSettingsPanel';
+import { BGMControlButton } from '../components/BGMControlButton';
 import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 
 export default function RoomCreatedScreen() {
@@ -67,7 +68,7 @@ export default function RoomCreatedScreen() {
 
   const handleStartGame = () => {
     if (roomId && player1Name) {
-      router.push(`/waitingForOpponent?roomId=${roomId}&player1Name=${player1Name}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}&soundType=${gameSettings.soundType}`);
+      router.push(`/waitingForOpponent?roomId=${roomId}&player1Name=${player1Name}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
     } else {
       router.push('/');
     }
@@ -148,6 +149,11 @@ export default function RoomCreatedScreen() {
             <span className="text-black text-xs font-semibold leading-snug">2人が揃ったらゲーム開始。</span>
           </div>
         </div>
+      </div>
+      
+      {/* BGMコントロールボタン（固定位置） */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
       </div>
       
     </Layout>

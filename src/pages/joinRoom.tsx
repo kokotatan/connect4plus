@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
+import { BGMControlButton } from '../components/BGMControlButton';
 import { joinRoom, checkRoomExists } from '../utils/firebase';
 
 const tigerMuscle = '/assets/Avater/PosingAvater/tiger_muscle.png';
@@ -114,6 +115,11 @@ export default function JoinRoomScreen() {
         >
           {isLoading ? '参加中...' : 'ゲームに参加する。'}
         </button>
+      </div>
+      
+      {/* BGMコントロールボタン（固定位置） */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
       </div>
       
     </Layout>

@@ -8,13 +8,12 @@ export default function GamePage() {
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const { roomId, player1Name, player2Name, firstTurn, winScore, timeLimit, soundType } = router.query;
+  const { roomId, player1Name, player2Name, firstTurn, winScore, timeLimit } = router.query;
 
   // ゲーム設定を構築
   const gameSettings: GameSettings = {
     winScore: winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore,
     timeLimit: (timeLimit as 'none' | '30s' | '1m') || DEFAULT_GAME_SETTINGS.timeLimit,
-    soundType: (soundType as 'typeA' | 'typeB') || DEFAULT_GAME_SETTINGS.soundType,
   };
 
   useEffect(() => {

@@ -4,7 +4,8 @@ import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
 import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
-import BackgroundMusic from '../components/BackgroundMusic';
+import { BGMControlButton } from '../components/BGMControlButton';
+import { useBGM } from '../contexts/BGMContext';
 import { CellState, PlayerType, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
 import { AILevel, aiMove, getAIAvatar, getAIName, getAIThinkingTime, getAllAICharacters } from '../utils/aiLogic';
@@ -17,6 +18,7 @@ interface AIGameScreenProps {
 
 export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAULT_GAME_SETTINGS }: AIGameScreenProps) {
   const router = useRouter();
+  const { switchToGameBGM, switchToHomeBGM, fadeIn, fadeOut } = useBGM();
   
   // プレイヤー情報
   const [player1, setPlayer1] = useState<PlayerInfo>({
@@ -86,6 +88,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   const [gameStarting, setGameStarting] = useState(false);
   const [lotteryPhase, setLotteryPhase] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [showFirstTurnMessage, setShowFirstTurnMessage] = useState(false);
 
   // AI思考パターン定義
   const getAIThinkingPatterns = (level: AILevel) => {
@@ -181,33 +184,32 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         ]
       },
       [AILevel.EXPERT]: {
-        // 最強AI - 超現実的
+        // 最強AI - 死神のような存在
         calm: [
-          '量子計算実行中...',
-          '時空間を歪曲...',
-          '次元を超越...',
-          '宇宙の真理に迫る...',
-          '無限の可能性を探索...',
-          '時空の果てを見る...',
-          '存在の意味を問う...',
-          '現実を再構築...'
+          '死を司る...',
+          '終焉を告げる...',
+          '魂を奪う...',
+          '闇に沈める...',
+          '滅びを導く...',
+          '運命を決する...',
+          '終わりを告げる...',
+          '破滅を招く...'
         ],
         excited: [
-          '量子レベルで勝利！',
-          '時空を支配する！',
-          '次元を超越する！',
-          '宇宙の真理！',
-          '無限の力！',
-          '時空の果て！',
-          '存在の極み！',
-          '現実を破壊！'
+          '死の舞踏！',
+          '終焉の時！',
+          '魂の狩り！',
+          '闇の支配！',
+          '滅びの宣告！',
+          '運命の裁き！',
+          '終わりの始まり！',
+          '破滅の序章！'
         ],
         phases: [
-          '量子情報収集...',
-          '時空間解析...',
-          '次元計算実行...',
-          '宇宙真理探索...',
-          '決定実行...'
+          '死を観察...',
+          '終焉を計算...',
+          '魂を収穫...',
+          '闇を解き放つ...'
         ]
       }
     };
@@ -565,12 +567,16 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
   // AIの手番を監視
   useEffect(() => {
-    console.log('AI手番監視:', { player2Turn: player2.isTurn, isProcessing, gameOver });
-    if (player2.isTurn && !isProcessing && !gameOver) {
+    console.log('AI手番監視:', { player2Turn: player2.isTurn, isProcessing, gameOver, gameStarted });
+    if (player2.isTurn && !isProcessing && !gameOver && gameStarted) {
       console.log('AI手番開始');
-      handleAITurn();
+      // AI先手の場合は少し遅延させてから開始（演出のため）
+      const delay = showFirstTurnMessage ? 2500 : 1000; // メッセージ表示中は2.5秒、通常は1秒遅延
+      setTimeout(() => {
+        handleAITurn();
+      }, delay);
     }
-  }, [player2.isTurn, isProcessing, gameOver, handleAITurn]);
+  }, [player2.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, handleAITurn]);
 
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = useCallback(async (columnIndex: number) => {
@@ -591,6 +597,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
   // 再戦ボタン押下時
   const handleRematch = () => {
+    // 再戦時はBGMを継続（フェードアウトしない）
     router.push('/');
   };
 
@@ -624,11 +631,26 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setGameStarting(false);
     setLotteryPhase(false);
     setSelectedPlayer(null);
+    setShowFirstTurnMessage(false);
+  };
+
+  // タイトルに戻るボタン押下時
+  const handleGoHome = () => {
+    // ホームBGMに切り替えてから遷移
+    switchToHomeBGM();
+    // BGMをフェードアウトしてから遷移
+    setTimeout(() => {
+      router.push('/');
+    }, 500);
   };
 
   // ゲーム開始ボタン押下時
   const handleStartGame = () => {
     setGameStarting(true);
+    
+    // ゲームスタート前にフェードアウト
+    fadeOut(1000); // 1秒でフェードアウト
+    
     setTimeout(() => {
       setLotteryPhase(true);
       const firstTurn = Math.random() < 0.5 ? 'player1' : 'player2';
@@ -639,9 +661,30 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         setGameStarted(true);
         setPlayer1(prev => ({ ...prev, isTurn: firstTurn === 'player1' }));
         setPlayer2(prev => ({ ...prev, isTurn: firstTurn === 'player2' }));
+        
+        // フェードインで再生開始
+        setTimeout(() => {
+          fadeIn(2000); // 2秒でフェードイン
+        }, 100);
+        
+        // AI先手の場合はメッセージを表示
+        if (firstTurn === 'player2') {
+          setShowFirstTurnMessage(true);
+          setTimeout(() => {
+            setShowFirstTurnMessage(false);
+          }, 2000); // 2秒間表示
+        }
       }, 2500); // 1500ms + 2500ms = 4000ms
     }, 1500);
   };
+
+  // ゲーム開始ボタンが表示される時にBGMを切り替え
+  useEffect(() => {
+    if (!gameStarted && !gameStarting) {
+      console.log('AI戦準備完了、ゲームBGMに切り替え');
+      switchToGameBGM();
+    }
+  }, [gameStarted, gameStarting, switchToGameBGM]);
 
   // ゲーム開始前の画面
   if (!gameStarted) {
@@ -718,7 +761,12 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         </div>
         
         {/* 背景BGM */}
-        <BackgroundMusic isPlaying={false} volume={0.2} showControls={true} />
+        {/* BackgroundMusic ref={bgmRef} isPlaying={true} volume={0.2} showControls={gameStarted} /> */}
+        
+        {/* BGMコントロールボタン（固定位置） */}
+        <div className="fixed bottom-4 right-4 z-50">
+          <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
+        </div>
       </main>
     );
   }
@@ -772,6 +820,16 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
         {/* ゲーム盤面 */}
         <div className="flex flex-col items-center w-full">
+          {/* AI先手メッセージ */}
+          {showFirstTurnMessage && (
+            <div className="mb-4 px-6 py-3 bg-emerald-100 border-2 border-emerald-300 rounded-xl shadow-lg animate-pulse">
+              <div className="text-center">
+                <div className="text-lg font-bold text-emerald-700 mb-1">AIの番です</div>
+                <div className="text-sm text-emerald-600">AIが考え中...</div>
+              </div>
+            </div>
+          )}
+          
           <div className="flex justify-center items-center relative">
             <div className="rounded-3xl shadow-2xl p-4 bg-[#D9F2E1]">
               <GameGrid
@@ -873,7 +931,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 sm:mt-4 w-full">
                 <button
-                  onClick={() => router.push('/')}
+                  onClick={handleGoHome}
                   className="px-4 sm:px-8 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
                   aria-label="ホーム画面に戻る"
                 >
@@ -981,8 +1039,10 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         fireworkVisible={fireworkVisible}
       />
       
-      {/* 背景BGM */}
-      <BackgroundMusic isPlaying={false} volume={0.2} showControls={true} />
+      {/* BGMコントロールボタン（固定位置） */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
+      </div>
     </main>
   );
 } 

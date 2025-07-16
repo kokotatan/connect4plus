@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { watchRoom, getPlayerInfo, RoomData } from '../utils/firebase';
 import RulesPopup from '../components/RulesPopup';
+import { BGMControlButton } from '../components/BGMControlButton';
+import { useBGM } from '../contexts/BGMContext';
 import { ref, set, onValue, off, update } from 'firebase/database';
 import { db } from '../utils/firebase';
 import { createEmptyBoard } from '../utils/gameLogic';
@@ -55,7 +57,8 @@ export default function WaitingForOpponentScreen() {
   const [lotteryPhase, setLotteryPhase] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const router = useRouter();
-  const { roomId, player1Name, player2Name, winScore, timeLimit, soundType } = router.query;
+  const { switchToGameBGM, fadeOut, fadeIn } = useBGM();
+  const { roomId, player1Name, player2Name, winScore, timeLimit } = router.query;
   const playerInfo = getPlayerInfo();
   const mySessionId = playerInfo?.sessionId;
   const currentPlayerType = playerInfo?.isPlayer1 ? 'player1' : 'player2';
@@ -65,7 +68,6 @@ export default function WaitingForOpponentScreen() {
   const gameSettings: GameSettings = {
     winScore: winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore,
     timeLimit: (timeLimit as 'none' | '30s' | '1m') || DEFAULT_GAME_SETTINGS.timeLimit,
-    soundType: (soundType as 'typeA' | 'typeB') || DEFAULT_GAME_SETTINGS.soundType,
   };
 
   // ルーム監視
@@ -102,6 +104,12 @@ export default function WaitingForOpponentScreen() {
         if (data.player1 && data.player2 && roomData && roomData.player1 && roomData.player2 && !gameStarting) {
           console.log('両者準備完了、ゲーム開始処理を開始');
           
+          // ゲームスタート前にフェードアウト
+          fadeOut(1000); // 1秒でフェードアウト
+          
+          // ゲーム開始時にBGMを切り替え
+          switchToGameBGM();
+          
           // ゲーム開始前にゲーム状態をリセット
           const gameStateRef = ref(db, `rooms/${roomId}/gameState`);
           const initialBoard = createEmptyBoard();
@@ -125,7 +133,12 @@ export default function WaitingForOpponentScreen() {
               setSelectedPlayer(firstTurn);
             }, 1500);
             setTimeout(() => {
-              router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2?.name || '')}&firstTurn=${firstTurn}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}&soundType=${gameSettings.soundType}`);
+              // ゲーム開始時にフェードイン
+              setTimeout(() => {
+                fadeIn(2000); // 2秒でフェードイン
+              }, 100);
+              
+              router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2?.name || '')}&firstTurn=${firstTurn}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
             }, 4000);
           }).catch((error) => {
             console.error('ゲーム状態初期化エラー:', error);
@@ -136,7 +149,15 @@ export default function WaitingForOpponentScreen() {
       }
     });
     return () => off(readyRef);
-  }, [roomId, roomData, gameStarting, router]);
+  }, [roomId, roomData, gameStarting, router, switchToGameBGM, fadeOut, fadeIn]);
+
+  // 2人揃ってゲームスタートボタンが表示される時にBGMを切り替え
+  useEffect(() => {
+    if (roomData && roomData.player2 && !gameStarting) {
+      console.log('2人揃いました、ゲームBGMに切り替え');
+      switchToGameBGM();
+    }
+  }, [roomData, gameStarting, switchToGameBGM]);
 
   // ページ離脱時にルーム削除（作成者のみ）
   useEffect(() => {
@@ -209,6 +230,9 @@ export default function WaitingForOpponentScreen() {
               <div className={`w-10 h-10 sm:w-16 sm:h-16 border-4 border-emerald-400 border-t-transparent rounded-full mx-auto ${lotteryPhase ? 'animate-pulse' : 'animate-spin'}`}></div>
             </div>
           </div>
+          
+          {/* 固定BGMコントロールボタン */}
+          <BGMControlButton />
         </div>
       </Layout>
     );
@@ -288,6 +312,9 @@ export default function WaitingForOpponentScreen() {
         
         {/* ルール説明ポップアップ */}
         <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
+        
+        {/* 固定BGMコントロールボタン */}
+        <BGMControlButton />
         
       </Layout>
     );
@@ -371,8 +398,11 @@ export default function WaitingForOpponentScreen() {
         {/* ルール説明ポップアップ */}
         <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
         
-      </Layout>
-    );
+        {/* 固定BGMコントロールボタン */}
+        <BGMControlButton />
+        
+    </Layout>
+  );
   }
 
   // 2人揃ったら即ゲーム開始アニメーション（return不要、useEffectで遷移）
