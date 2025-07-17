@@ -30,6 +30,7 @@ export interface RoomData {
   gameState?: {
     board: CellState[][];
     currentTurn: 'player1' | 'player2';
+    firstTurn?: 'player1' | 'player2';
     player1Score: number;
     player2Score: number;
     gameOver: boolean;
