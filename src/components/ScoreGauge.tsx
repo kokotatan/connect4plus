@@ -38,7 +38,7 @@ export default function ScoreGauge({ score, maxScore, playerType }: ScoreGaugePr
         boxShadow: '0 1px #888',
         imageRendering: 'pixelated',
         overflow: 'hidden',
-        background: colors.scoreGaugeBackground
+        background: '#ffffff' // 背景色を白に固定
       }}
     >
       {[...Array(maxScore)].map((_, i) => (
@@ -47,7 +47,7 @@ export default function ScoreGauge({ score, maxScore, playerType }: ScoreGaugePr
           style={{
             width: totalWidth / maxScore,
             height: '100%',
-            background: i < score ? playerColor : colors.scoreGaugeBackground,
+            background: i < score ? playerColor : '#ffffff', // 空のセルも白に
             borderRight: i < maxScore - 1 ? `1px solid ${colors.scoreGaugeBorder}` : 'none',
             boxSizing: 'border-box',
             flexShrink: 0,

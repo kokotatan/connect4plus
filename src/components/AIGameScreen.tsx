@@ -91,6 +91,10 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   const [lotteryPhase, setLotteryPhase] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [showFirstTurnMessage, setShowFirstTurnMessage] = useState(false);
+  
+  // 先手表示オーバーレイの状態
+  const [showFirstTurnOverlay, setShowFirstTurnOverlay] = useState(false);
+  const [firstTurnPlayerName, setFirstTurnPlayerName] = useState('');
 
   // AI思考パターン定義
   const getAIThinkingPatterns = (level: AILevel) => {
@@ -233,7 +237,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
   // タイマー: プレイヤーの番の時だけ増える
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || showFirstTurnOverlay) return; // 先手表示中はタイマーを停止
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setTimers(prev => {
@@ -243,7 +247,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       });
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [player1.isTurn, player2.isTurn, gameOver]);
+  }, [player1.isTurn, player2.isTurn, gameOver, showFirstTurnOverlay]);
 
   // AIの思考演出
   useEffect(() => {
@@ -617,7 +621,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
                         !gameOver && 
                         gameStarted &&
                         player2.type === 'ai' && // AIプレイヤーであることを確認
-                        !showFirstTurnMessage; // 初回メッセージ表示中は動かない
+                        !showFirstTurnMessage && // 初回メッセージ表示中は動かない
+                        !showFirstTurnOverlay; // 先手表示オーバーレイ表示中は動かない
     
     console.log('=== AI手番監視 ===');
     console.log('条件チェック:', {
@@ -628,6 +633,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       gameStarted,
       player2Type: player2.type,
       showFirstTurnMessage,
+      showFirstTurnOverlay,
       shouldAIMove
     });
     console.log('AI動作判定:', {
@@ -641,7 +647,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
          gameOver ? 'ゲーム終了' :
          !gameStarted ? 'ゲーム未開始' :
          player2.type !== 'ai' ? 'AIプレイヤーではない' :
-         showFirstTurnMessage ? '初回メッセージ表示中' : 'その他') : 'AI動作可能'
+         showFirstTurnMessage ? '初回メッセージ表示中' :
+         showFirstTurnOverlay ? '先手表示オーバーレイ表示中' : 'その他') : 'AI動作可能'
     });
     
     if (shouldAIMove) {
@@ -651,7 +658,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         handleAITurn();
       }, delay);
     }
-  }, [player2.isTurn, player1.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, handleAITurn, player2.type]);
+  }, [player2.isTurn, player1.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, showFirstTurnOverlay, handleAITurn, player2.type]);
 
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = useCallback(async (columnIndex: number) => {
@@ -710,6 +717,13 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setLotteryPhase(false);
     setSelectedPlayer(null);
     setShowFirstTurnMessage(false);
+    setShowFirstTurnOverlay(false);
+    setFirstTurnPlayerName('');
+    
+    // 新しいゲームを開始
+    setTimeout(() => {
+      handleStartGame();
+    }, 100);
   };
 
   // タイトルに戻るボタン押下時
@@ -759,6 +773,16 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         
         setPlayer1(prev => ({ ...prev, isTurn: player1Turn }));
         setPlayer2(prev => ({ ...prev, isTurn: player2Turn }));
+        
+        // 先手表示オーバーレイを表示
+        const firstTurnName = firstTurn === 'player1' ? player1.name : player2.name;
+        setFirstTurnPlayerName(firstTurnName);
+        setShowFirstTurnOverlay(true);
+        
+        // 1.7秒後に先手表示を消してゲーム開始
+        setTimeout(() => {
+          setShowFirstTurnOverlay(false);
+        }, 1700);
         
         // フェードインで再生開始
         setTimeout(() => {
@@ -845,9 +869,9 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
                     {lotteryPhase ? '先手が決まりました！' : '先手を抽選中...'}
                   </div>
                   <div className="flex justify-center items-center gap-4 sm:gap-8 mb-2 sm:mb-4 w-full">
-                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{player1.name}{lotteryPhase && selectedPlayer === 'player1' && <span className="ml-1 sm:ml-2">🎯</span>}</div>
+                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`} style={lotteryPhase && selectedPlayer === 'player1' ? { backgroundColor: colors.player1Color, color: 'white' } : {}}>{player1.name}</div>
                     <div className="text-lg sm:text-2xl font-bold text-gray-400">VS</div>
-                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{player2.name}{lotteryPhase && selectedPlayer === 'player2' && <span className="ml-1 sm:ml-2">🎯</span>}</div>
+                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`} style={lotteryPhase && selectedPlayer === 'player2' ? { backgroundColor: colors.player2Color, color: 'white' } : {}}>{player2.name}</div>
                   </div>
                   <div className={`w-10 h-10 sm:w-16 sm:h-16 border-4 border-emerald-400 border-t-transparent rounded-full mx-auto ${lotteryPhase ? 'animate-pulse' : 'animate-spin'}`}></div>
                 </div>
@@ -952,6 +976,27 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
             </div>
           </div>
         </div>
+
+        {/* 先手表示オーバーレイ */}
+        {showFirstTurnOverlay && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm text-center border-2 border-emerald-300">
+              <div className="text-2xl font-bold text-emerald-600 mb-4">ゲーム開始！</div>
+              <div className="text-xl font-semibold text-gray-700 bg-emerald-50 rounded-lg p-3">
+                <span 
+                  className="font-bold"
+                  style={{ 
+                    color: firstTurnPlayerName === player1.name ? colors.player1Color : colors.player2Color,
+                    textShadow: '0 0 8px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  {firstTurnPlayerName}
+                </span>
+                から始めます。
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 最強AI用数式背景 */}
         {showMathBackground && (

@@ -223,9 +223,9 @@ export default function WaitingForOpponentScreen() {
                 {lotteryPhase ? '先手が決まりました！' : '先手を抽選中...'}
               </div>
               <div className="flex justify-center items-center gap-4 sm:gap-8 mb-2 sm:mb-4 w-full">
-                <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{roomData?.player1.name}{lotteryPhase && selectedPlayer === 'player1' && <span className="ml-1 sm:ml-2">🎯</span>}</div>
+                <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{roomData?.player1.name}</div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-400">VS</div>
-                <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{roomData?.player2?.name}{lotteryPhase && selectedPlayer === 'player2' && <span className="ml-1 sm:ml-2">🎯</span>}</div>
+                <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{roomData?.player2?.name}</div>
               </div>
               <div className={`w-10 h-10 sm:w-16 sm:h-16 border-4 border-emerald-400 border-t-transparent rounded-full mx-auto ${lotteryPhase ? 'animate-pulse' : 'animate-spin'}`}></div>
             </div>

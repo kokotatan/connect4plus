@@ -32,21 +32,6 @@ export default function HomePage() {
     }
   }, [router.isReady, router.query.roomId]);
 
-  // ホームページロード時にホームBGMを確実に再生
-  useEffect(() => {
-    console.log('ホームページロード: ホームBGMを確実に再生');
-    // 初回ロード時のみ実行されるようにフラグを追加
-    const timer = setTimeout(() => {
-      switchToHomeBGM();
-      // 少し遅延してからフェードイン
-      setTimeout(() => {
-        fadeIn(2000);
-      }, 100);
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, []); // 依存配列を空にして初回のみ実行
-
   // Firebase接続テスト
   useEffect(() => {
     const testConnection = async () => {
@@ -287,6 +272,27 @@ export default function HomePage() {
               onSettingsChange={setGameSettings}
               isVisible={true}
             />
+          </div>
+        </div>
+
+        {/* オフライン戦カード */}
+        <div className="bg-gradient-to-br from-white via-orange-50 to-orange-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
+          <p className="text-lg text-black font-bold text-center">オフラインで対戦する方はこちら</p>
+          <div className="w-full flex flex-col items-center gap-2">
+            <div className="flex w-full justify-between items-end mb-2">
+              <img src={graycatMuscle} alt="Player 1" className="w-28 h-32 object-contain -ml-2" />
+              <img src={tigerMuscle} alt="Player 2" className="w-28 h-32 object-contain -mr-2" />
+            </div>
+            <p className="text-sm text-gray-600 font-semibold text-center mb-2">
+              スマホやタブレットを中心に向かい合って<br />
+              交互にコマを置いて対戦できます
+            </p>
+            <button
+              onClick={() => router.push('/offline-game')}
+              className="w-full max-w-xs h-12 bg-gradient-to-r from-orange-400 to-red-400 text-white text-lg font-extrabold tracking-wide rounded-xl shadow hover:scale-105 active:scale-95 hover:from-orange-500 hover:to-red-500 transition-all duration-150 drop-shadow-md"
+            >
+              オフライン対戦開始
+            </button>
           </div>
         </div>
 

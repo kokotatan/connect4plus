@@ -91,7 +91,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
                 height: BOARD_HEIGHT * CELL_SIZE + (BOARD_HEIGHT - 1) * CELL_GAP,
                 cursor: onColumnClick ? 'pointer' : 'default',
                 zIndex: 10,
-                background: isHighlighted ? `${colors.accentColor}33` : 'transparent',
+                background: isHighlighted ? `${getPreviewColor()}15` : 'transparent',
                 borderRadius: 8,
                 transition: 'background-color 0.2s ease',
               }}
