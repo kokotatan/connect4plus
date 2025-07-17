@@ -966,7 +966,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: colors.player1Color }} title="あなたのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
-            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player1.score} maxScore={gameSettings.winScore} playerType={player1.type} /></div>
+            <div className="w-full mt-1 flex justify-center"><ScoreGauge score={player1.score} maxScore={gameSettings.winScore} playerType={player1.type} /></div>
           </div>
           
           {/* VS */}
@@ -980,7 +980,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: colors.player2Color }} title="AIのコマ色" />
             </div>
             <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
-            <div className="w-16 sm:w-20 mt-1"><ScoreGauge score={player2.score} maxScore={gameSettings.winScore} playerType={player2.type} /></div>
+            <div className="w-full mt-1 flex justify-center"><ScoreGauge score={player2.score} maxScore={gameSettings.winScore} playerType={player2.type} /></div>
             {/* AI思考中ポップアップ */}
             {aiThinking && (
               <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 px-4 py-2 bg-white border-2 border-emerald-300 rounded-xl shadow-lg animate-pulse flex items-center gap-2">

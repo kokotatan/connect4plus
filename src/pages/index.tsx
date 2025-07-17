@@ -131,6 +131,31 @@ export default function HomePage() {
           )}
         </div>
 
+        {/* ページ内移動ボタン */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full max-w-md">
+          <button
+            onClick={() => document.getElementById('online-battle')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-4 py-2 bg-blue-400 text-white rounded-full text-sm font-semibold shadow hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors min-h-[44px]"
+            aria-label="オンライン対戦セクションに移動"
+          >
+            オンライン対戦
+          </button>
+          <button
+            onClick={() => document.getElementById('ai-battle')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-4 py-2 bg-purple-400 text-white rounded-full text-sm font-semibold shadow hover:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors min-h-[44px]"
+            aria-label="AI対戦セクションに移動"
+          >
+            AI対戦
+          </button>
+          <button
+            onClick={() => document.getElementById('offline-battle')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-4 py-2 bg-orange-400 text-white rounded-full text-sm font-semibold shadow hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors min-h-[44px]"
+            aria-label="オフライン対戦セクションに移動"
+          >
+            オフライン対戦
+          </button>
+        </div>
+
         {/* ルール説明ボタン */}
         <button
           onClick={() => setShowRules(true)}
@@ -141,7 +166,7 @@ export default function HomePage() {
         </button>
 
         {/* 新規ルーム作成カード */}
-        <div className="bg-gradient-to-br from-white via-emerald-50 to-emerald-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
+        <div id="online-battle" className="bg-gradient-to-br from-white via-emerald-50 to-emerald-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
           <p className="text-lg text-black font-bold text-center">新規でルームを作成する方はこちら</p>
           <div className="w-full flex flex-col items-center gap-2">
             <label className="block w-full text-lg font-bold text-gray-800 text-center mb-1">名前を入力してください。</label>
@@ -201,7 +226,7 @@ export default function HomePage() {
         </div>
 
         {/* AI戦カード */}
-        <div className="bg-gradient-to-br from-white via-purple-50 to-purple-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
+        <div id="ai-battle" className="bg-gradient-to-br from-white via-purple-50 to-purple-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
           <p className="text-lg text-black font-bold text-center">AIと対戦する方はこちら</p>
           <div className="w-full flex flex-col items-center gap-2">
             <label className="block w-full text-lg font-bold text-gray-800 text-center mb-1">あなたの名前を入力してください。</label>
@@ -272,7 +297,7 @@ export default function HomePage() {
         </div>
 
         {/* オフライン戦カード */}
-        <div className="bg-gradient-to-br from-white via-orange-50 to-orange-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
+        <div id="offline-battle" className="bg-gradient-to-br from-white via-orange-50 to-orange-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
           <p className="text-lg text-black font-bold text-center">オフラインで対戦する方はこちら</p>
           <div className="w-full flex flex-col items-center gap-2">
             <div className="flex w-full justify-between items-end mb-2">

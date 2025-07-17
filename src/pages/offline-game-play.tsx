@@ -548,7 +548,7 @@ export default function OfflineGamePlayPage() {
                 <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: colors.player1Color }} title="プレイヤー1のコマ色" />
               </div>
               <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
-              <div className="w-16 sm:w-20 mt-2 flex justify-center"><ScoreGauge score={player1.score} maxScore={gameSettings.winScore} playerType={player1.type} /></div>
+              <div className="w-full mt-2 flex justify-center"><ScoreGauge score={player1.score} maxScore={gameSettings.winScore} playerType={player1.type} /></div>
             </div>
             {/* VS */}
             <div className="text-lg sm:text-2xl font-extrabold text-gray-400 mb-6 select-none">VS</div>
@@ -560,7 +560,7 @@ export default function OfflineGamePlayPage() {
                 <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: colors.player2Color }} title="プレイヤー2のコマ色" />
               </div>
               <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
-              <div className="w-16 sm:w-20 mt-2 flex justify-center"><ScoreGauge score={player2.score} maxScore={gameSettings.winScore} playerType={player2.type} /></div>
+              <div className="w-full mt-2 flex justify-center"><ScoreGauge score={player2.score} maxScore={gameSettings.winScore} playerType={player2.type} /></div>
             </div>
           </div>
 
