@@ -284,9 +284,11 @@ export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
       if (isEnabled && !isPlaying && currentAudioRef.current === homeAudioRef.current) {
         console.log('ホームBGMが停止中なので再生を試行');
         // 一度だけ再生を試行し、失敗しても再試行しない
-        currentAudioRef.current.play().catch(error => {
-          console.error('ホームBGM再生失敗:', error);
-        });
+        if (currentAudioRef.current) {
+          currentAudioRef.current.play().catch(error => {
+            console.error('ホームBGM再生失敗:', error);
+          });
+        }
       }
       return;
     }
