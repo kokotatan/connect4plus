@@ -1010,7 +1010,9 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
           
           {/* Presented by & ボタン群 */}
           <div className="flex flex-col items-center w-full mt-8">
-            <div className="text-sm text-gray-500 font-semibold mb-4">Presented by Kotaro Design Lab.</div>
+            <div className="text-sm text-gray-500 font-semibold mb-4">
+              © 2025 Kotaro Design Lab. All rights reserved.
+            </div>
             <div className="flex gap-4">
               <button
                 onClick={() => setShowRules(true)}
@@ -1108,20 +1110,23 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         {/* 結果モーダル */}
         {gameOver && result && finalBoard && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-            <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 flex flex-col items-center w-full max-w-xs sm:max-w-md min-h-[280px] sm:min-h-[340px]">
-              {/* 勝者アバターを大きく前面に */}
+            <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 flex flex-col items-center w-full max-w-xs sm:max-w-md min-h-[240px] sm:min-h-[300px]">
+              {/* 勝者アバターを小さくして見切れを防ぐ */}
               {result.result === 'win' && (
-                <img
-                  src={result.winner === player1.name ? player1.avatar : player2.avatar}
-                  className="w-24 h-24 sm:w-40 sm:h-40 rounded-full shadow-2xl border-4 border-emerald-400 -mt-16 sm:-mt-24 mb-2 sm:mb-4 z-10"
-                  style={{ objectFit: 'cover', position: 'relative', top: '-20px' }}
-                  alt="Winner Avatar"
-                />
+                <div className="flex flex-col items-center -mt-12 sm:-mt-16 mb-2 sm:mb-3 z-10">
+                  <img
+                    src={result.winner === player1.name ? player1.avatar : player2.avatar}
+                    className="w-16 h-16 sm:w-24 sm:h-24 rounded-full shadow-2xl border-4 border-emerald-400"
+                    style={{ objectFit: 'cover' }}
+                    alt="Winner Avatar"
+                  />
+                  <div className="mt-1 text-xs text-gray-600">勝者</div>
+                </div>
               )}
-              <div className="text-2xl sm:text-4xl font-extrabold text-emerald-500 mb-2 text-center">
-                {result.result === 'win' ? `${result.winner} の勝ち！` : '引き分け'}
+              <div className="text-xl sm:text-3xl font-extrabold text-emerald-500 mb-2 text-center whitespace-nowrap">
+                {result.result === 'win' ? `${result.winner}の勝ち！` : '引き分け'}
               </div>
-              <div className="w-full flex justify-center mb-3 sm:mb-4">
+              <div className="w-full flex justify-center mb-2 sm:mb-3">
                 <div className="scale-75 sm:scale-100">
                   <GameGrid board={finalBoard} />
                 </div>

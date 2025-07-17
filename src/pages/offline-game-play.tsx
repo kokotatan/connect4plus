@@ -582,7 +582,6 @@ export default function OfflineGamePlayPage() {
 
         {/* Presented by & ボタン群（回転対象外） */}
         <div className="flex flex-col items-center w-full mt-8">
-          <div className="text-sm text-gray-500 font-semibold mb-4">Presented by Kotaro Design Lab.</div>
           <div className="flex gap-4">
             <button
               onClick={() => setShowRules(true)}
@@ -608,6 +607,13 @@ export default function OfflineGamePlayPage() {
                 もう一度遊ぶ
               </button>
             )}
+          </div>
+        </div>
+
+        {/* クレジット表記 */}
+        <div className="w-full text-center mt-8 mb-4">
+          <div className="text-sm text-gray-500 font-semibold">
+            © 2025 Kotaro Design Lab. All rights reserved.
           </div>
         </div>
 
@@ -642,56 +648,56 @@ export default function OfflineGamePlayPage() {
         {/* 結果モーダル */}
         {gameOver && result && finalBoard && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-            <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 flex flex-col items-center w-full max-w-xs sm:max-w-md min-h-[280px] sm:min-h-[340px]">
-              {/* 勝者アバターを大きく前面に */}
+            <div className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 flex flex-col items-center w-full max-w-xs sm:max-w-md min-h-[240px] sm:min-h-[300px]">
+              {/* 勝者アバターを小さくして見切れを防ぐ */}
               {result.result === 'win' && (
-                <div className="flex flex-col items-center -mt-16 sm:-mt-24 mb-2 sm:mb-4 z-10">
+                <div className="flex flex-col items-center -mt-12 sm:-mt-16 mb-2 sm:mb-3 z-10">
                   <img
                     src={result.winner === player1.name ? '/assets/Avater/Avater/happy_graycat.png' : '/assets/Avater/Avater/happy_tiger.png'}
-                    className="w-24 h-24 sm:w-40 sm:h-40 rounded-full shadow-2xl border-4 border-emerald-400"
+                    className="w-16 h-16 sm:w-24 sm:h-24 rounded-full shadow-2xl border-4 border-emerald-400"
                     style={{ objectFit: 'cover' }}
                     alt="Winner Avatar"
                   />
-                  <div className="mt-2 text-sm text-gray-600">勝者</div>
+                  <div className="mt-1 text-xs text-gray-600">勝者</div>
                 </div>
               )}
               {result.result === 'draw' && (
-                <div className="flex flex-col items-center -mt-16 sm:-mt-24 mb-2 sm:mb-4 z-10">
-                  <div className="flex gap-2">
+                <div className="flex flex-col items-center -mt-12 sm:-mt-16 mb-2 sm:mb-3 z-10">
+                  <div className="flex gap-1 sm:gap-2">
                     <img
                       src="/assets/Avater/Avater/crying_graycat.png"
-                      className="w-20 h-20 sm:w-32 sm:h-32 rounded-full shadow-2xl border-4 border-gray-400"
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full shadow-2xl border-4 border-gray-400"
                       style={{ objectFit: 'cover' }}
                       alt="Player 1 Avatar"
                     />
                     <img
                       src="/assets/Avater/Avater/crying_tiger.png"
-                      className="w-20 h-20 sm:w-32 sm:h-32 rounded-full shadow-2xl border-4 border-gray-400"
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full shadow-2xl border-4 border-gray-400"
                       style={{ objectFit: 'cover' }}
                       alt="Player 2 Avatar"
                     />
                   </div>
-                  <div className="mt-2 text-sm text-gray-600">引き分け</div>
+                  <div className="mt-1 text-xs text-gray-600">引き分け</div>
                 </div>
               )}
-              <div className="text-2xl sm:text-4xl font-extrabold text-emerald-500 mb-2 text-center">
-                {result.result === 'win' ? `${result.winner} の勝ち！` : '引き分け'}
+              <div className="text-xl sm:text-3xl font-extrabold text-emerald-500 mb-2 text-center whitespace-nowrap">
+                {result.result === 'win' ? `${result.winner}の勝ち！` : '引き分け'}
               </div>
-              <div className="w-full flex justify-center mb-3 sm:mb-4">
+              <div className="w-full flex justify-center mb-2 sm:mb-3">
                 <div className="scale-75 sm:scale-100">
                   <GameGrid board={finalBoard} />
                 </div>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-2 sm:gap-4">
                 <button
                   onClick={handleBackToHome}
-                  className="px-6 py-3 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transition-colors"
+                  className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transition-colors text-sm sm:text-base"
                 >
                   ゲームを終わる
                 </button>
                 <button
                   onClick={handleRematch}
-                  className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors"
+                  className="px-4 sm:px-6 py-2 sm:py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors text-sm sm:text-base"
                 >
                   もう一戦！！
                 </button>

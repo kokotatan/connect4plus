@@ -119,54 +119,61 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-emerald-100 to-white flex flex-col justify-center items-center font-noto py-6 px-2">
-      <div className="w-full max-w-md flex flex-col items-center gap-8">
+      <div className="w-full max-w-md flex flex-col items-center gap-2">
         <div className="mb-2">
           <h1 className="text-4xl font-extrabold text-black text-center tracking-tight drop-shadow-sm">connect4plus</h1>
           <p className="text-lg text-gray-500 font-semibold text-center mt-1">次世代型立体四目並べ</p>
           {/* Firebase接続状態表示 */}
           {firebaseConnected !== null && (
             <div className={`text-sm font-semibold text-center mt-2 ${firebaseConnected ? 'text-green-600' : 'text-red-600'}`}>
-              {firebaseConnected ? '🟢 オンライン接続済み' : '🔴 オフライン接続エラー'}
+              {firebaseConnected ? '🟢 オンライン接続済み' : '🔴 オフライン状態'}
             </div>
           )}
         </div>
 
         {/* ページ内移動ボタン */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full max-w-md">
+        <div className="flex flex-row gap-2 w-full max-w-md mb-0">
           <button
-            onClick={() => document.getElementById('online-battle')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-4 py-2 bg-blue-400 text-white rounded-full text-sm font-semibold shadow hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors min-h-[44px]"
+            onClick={() => document.getElementById('online-title')?.scrollIntoView({ behavior: 'smooth' })}
+            className="flex-1 px-3 py-2 bg-blue-300 text-white rounded-full text-sm font-semibold shadow hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors min-h-[44px]"
             aria-label="オンライン対戦セクションに移動"
           >
-            オンライン対戦
+            オンライン戦
           </button>
           <button
-            onClick={() => document.getElementById('ai-battle')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-4 py-2 bg-purple-400 text-white rounded-full text-sm font-semibold shadow hover:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors min-h-[44px]"
+            onClick={() => document.getElementById('ai-title')?.scrollIntoView({ behavior: 'smooth' })}
+            className="flex-1 px-3 py-2 bg-purple-300 text-white rounded-full text-sm font-semibold shadow hover:bg-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-300 transition-colors min-h-[44px]"
             aria-label="AI対戦セクションに移動"
           >
-            AI対戦
+            AI戦
           </button>
           <button
-            onClick={() => document.getElementById('offline-battle')?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-4 py-2 bg-orange-400 text-white rounded-full text-sm font-semibold shadow hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors min-h-[44px]"
+            onClick={() => document.getElementById('offline-title')?.scrollIntoView({ behavior: 'smooth' })}
+            className="flex-1 px-3 py-2 bg-orange-300 text-white rounded-full text-sm font-semibold shadow hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-300 transition-colors min-h-[44px]"
             aria-label="オフライン対戦セクションに移動"
           >
-            オフライン対戦
+            オフライン戦
           </button>
         </div>
 
         {/* ルール説明ボタン */}
         <button
           onClick={() => setShowRules(true)}
-          className="px-6 py-2 bg-emerald-400 text-white rounded-full text-lg font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
+          className="w-full max-w-md px-4 py-1.5 bg-emerald-300 text-white rounded-full text-sm font-semibold shadow hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 transition-colors min-h-[36px] mb-0"
           aria-label="ゲームルールを表示"
         >
-          📖 ルール説明
+          ルール説明
         </button>
 
+        {/* 区切り線 */}
+        <div className="w-full max-w-md border-t border-gray-300 my-2"></div>
+
+        {/* オンライン対戦タイトル */}
+        <div id="online-title" className="w-full text-center mb-0">
+          <h2 className="text-2xl font-bold text-blue-600">オンライン対戦</h2>
+        </div>
         {/* 新規ルーム作成カード */}
-        <div id="online-battle" className="bg-gradient-to-br from-white via-emerald-50 to-emerald-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
+        <div id="online-battle" className="bg-gradient-to-br from-white via-emerald-50 to-emerald-100 rounded-3xl shadow-xl py-8 px-7 w-full flex flex-col items-center gap-4 mb-1">
           <p className="text-lg text-black font-bold text-center">新規でルームを作成する方はこちら</p>
           <div className="w-full flex flex-col items-center gap-2">
             <label className="block w-full text-lg font-bold text-gray-800 text-center mb-1">名前を入力してください。</label>
@@ -190,9 +197,8 @@ export default function HomePage() {
             </button>
           </div>
         </div>
-
         {/* 既存ルーム参加カード */}
-        <div className="bg-gradient-to-br from-white via-emerald-50 to-emerald-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
+        <div className="bg-gradient-to-br from-white via-emerald-50 to-emerald-100 rounded-3xl shadow-xl py-8 px-7 w-full flex flex-col items-center gap-4 mb-4">
           <p className="text-lg text-black font-bold text-center">既存のルームに参加する方はこちら</p>
           <div className="w-full flex flex-col items-center gap-2">
             <label className="block w-full text-lg font-bold text-gray-800 text-center mb-1">ルームIDを入力してください。</label>
@@ -225,8 +231,12 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* AI対戦タイトル */}
+        <div id="ai-title" className="w-full text-center mb-2">
+          <h2 className="text-2xl font-bold text-purple-600">AI対戦</h2>
+        </div>
         {/* AI戦カード */}
-        <div id="ai-battle" className="bg-gradient-to-br from-white via-purple-50 to-purple-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
+        <div id="ai-battle" className="bg-gradient-to-br from-white via-purple-50 to-purple-100 rounded-3xl shadow-xl py-8 px-7 w-full flex flex-col items-center gap-4 mb-4">
           <p className="text-lg text-black font-bold text-center">AIと対戦する方はこちら</p>
           <div className="w-full flex flex-col items-center gap-2">
             <label className="block w-full text-lg font-bold text-gray-800 text-center mb-1">あなたの名前を入力してください。</label>
@@ -296,8 +306,12 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* オフライン対戦タイトル */}
+        <div id="offline-title" className="w-full text-center mb-2">
+          <h2 className="text-2xl font-bold text-orange-600">オフライン対戦</h2>
+        </div>
         {/* オフライン戦カード */}
-        <div id="offline-battle" className="bg-gradient-to-br from-white via-orange-50 to-orange-100 rounded-3xl shadow-xl py-10 px-7 w-full flex flex-col items-center gap-6">
+        <div id="offline-battle" className="bg-gradient-to-br from-white via-orange-50 to-orange-100 rounded-3xl shadow-xl py-8 px-7 w-full flex flex-col items-center gap-4 mb-4">
           <p className="text-lg text-black font-bold text-center">オフラインで対戦する方はこちら</p>
           <div className="w-full flex flex-col items-center gap-2">
             <div className="flex w-full justify-between items-end mb-2">
@@ -317,13 +331,20 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ゲーム設定パネル（独立配置） */}
+        {/* ゲーム設定とルール説明（一番下に配置） */}
         <div className="w-full max-w-md">
           <GameSettingsPanel
             settings={gameSettings}
             onSettingsChange={setGameSettings}
             isVisible={true}
           />
+        </div>
+
+        {/* クレジット表記 */}
+        <div className="w-full text-center mt-8 mb-4">
+          <div className="text-sm text-gray-500 font-semibold">
+            © 2025 Kotaro Design Lab. All rights reserved.
+          </div>
         </div>
 
         {/* ルール説明ポップアップ */}
@@ -345,6 +366,14 @@ export default function HomePage() {
       <div className="fixed bottom-4 right-4 z-50">
         <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
       </div>
+      {/* 一番上に戻るボタン */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="fixed bottom-4 left-4 z-50 w-12 h-12 bg-gray-400 text-white rounded-full shadow-lg hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors flex items-center justify-center"
+        aria-label="画面の一番上に移動"
+      >
+        ↑
+      </button>
     </div>
   );
 } 
