@@ -9,6 +9,7 @@ import { BGMControlButton } from '../components/BGMControlButton';
 import { ThemeSelector } from '../components/ThemeSelector';
 import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 import { useBGM } from '../contexts/BGMContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function HomePage() {
   const [player1Name, setPlayer1Name] = useState('');
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const router = useRouter();
   const { switchToHomeBGM, fadeIn } = useBGM();
+  const { currentTheme } = useTheme();
 
   // 招待URLから来た場合は/joinRoomにリダイレクト
   useEffect(() => {
@@ -65,8 +67,9 @@ export default function HomePage() {
       setIsLoading(true);
       try {
         const newRoomId = generateRoomId();
-        await createRoom(newRoomId, player1Name.trim());
-        console.log('ルーム作成完了:', { roomId: newRoomId, playerName: player1Name.trim() });
+        // テーマ設定を含めてルームを作成
+        await createRoom(newRoomId, player1Name.trim(), currentTheme);
+        console.log('ルーム作成完了:', { roomId: newRoomId, playerName: player1Name.trim(), theme: currentTheme });
         // まずroomBuildingに遷移
         router.push(`/roomBuilding?roomId=${newRoomId}&player1Name=${encodeURIComponent(player1Name.trim())}`);
       } catch (error) {
@@ -265,13 +268,6 @@ export default function HomePage() {
             >
               AIと対戦開始
             </button>
-            
-            {/* ゲーム設定パネル（オフライン戦用） */}
-            <GameSettingsPanel
-              settings={gameSettings}
-              onSettingsChange={setGameSettings}
-              isVisible={true}
-            />
           </div>
         </div>
 
@@ -296,6 +292,15 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* ゲーム設定パネル（独立配置） */}
+        <div className="w-full max-w-md">
+          <GameSettingsPanel
+            settings={gameSettings}
+            onSettingsChange={setGameSettings}
+            isVisible={true}
+          />
+        </div>
+
         {/* ルール説明ポップアップ */}
         {showRules && (
           <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
@@ -309,11 +314,6 @@ export default function HomePage() {
             onClose={() => setShowCharacterPopup(false)}
           />
         )}
-
-        {/* テーマセレクター */}
-        <div className="w-full flex justify-center mt-4">
-          <ThemeSelector />
-        </div>
       </div>
       
       {/* 固定BGMコントロールボタン */}

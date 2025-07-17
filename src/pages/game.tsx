@@ -3,12 +3,14 @@ import { useRouter } from 'next/router';
 import GamePlayScreen from '../components/GamePlayScreen';
 import { watchRoom, deleteRoom, RoomData } from '../utils/firebase';
 import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function GamePage() {
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { roomId, player1Name, player2Name, firstTurn, winScore, timeLimit } = router.query;
+  const { setTheme } = useTheme();
 
   // ゲーム設定を構築
   const gameSettings: GameSettings = {
@@ -29,6 +31,11 @@ export default function GamePage() {
         setRoomData(data);
         setIsLoading(false);
 
+        // テーマ設定を同期
+        if (data.theme) {
+          setTheme(data.theme);
+        }
+
         // ゲーム終了時
         if (data.status === 'finished') {
           // ゲーム終了処理
@@ -40,7 +47,7 @@ export default function GamePage() {
     return () => {
       unsubscribe();
     };
-  }, [roomId, router]);
+  }, [roomId, router, setTheme]);
 
   // ページ離脱時にルーム削除
   useEffect(() => {

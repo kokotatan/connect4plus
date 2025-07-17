@@ -26,6 +26,7 @@ export interface RoomData {
   } | null;
   status: 'waiting' | 'ready' | 'playing' | 'finished';
   createdAt: number;
+  theme?: 'modern' | 'classic'; // テーマ設定を追加
   gameState?: {
     board: CellState[][];
     currentTurn: 'player1' | 'player2';
@@ -116,7 +117,7 @@ export const getPlayerInfo = (): PlayerInfo | null => {
 };
 
 // ルーム作成（セッション情報付き）
-export const createRoom = async (roomId: string, player1Name: string) => {
+export const createRoom = async (roomId: string, player1Name: string, theme: 'modern' | 'classic' = 'modern') => {
   const sessionId = getSessionId();
   const roomRef = ref(db, `rooms/${roomId}`);
   const roomData = {
@@ -127,7 +128,8 @@ export const createRoom = async (roomId: string, player1Name: string) => {
     },
     player2: null,
     status: 'waiting',
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    theme: theme // テーマ設定を保存
   };
   
   await set(roomRef, roomData);
@@ -135,7 +137,7 @@ export const createRoom = async (roomId: string, player1Name: string) => {
   // プレイヤー情報を保存
   savePlayerInfo(roomId, player1Name, true);
   
-  console.log('ルーム作成完了:', roomId, 'セッションID:', sessionId);
+  console.log('ルーム作成完了:', roomId, 'セッションID:', sessionId, 'テーマ:', theme);
 };
 
 // ルーム参加（セッション情報付き）
@@ -155,7 +157,7 @@ export const joinRoom = async (roomId: string, player2Name: string) => {
     throw new Error('ルームが満員です');
   }
   
-  // プレイヤー2として参加
+  // プレイヤー2として参加（テーマ設定は既存のものを維持）
   const updatedRoomData = {
     ...roomData,
     player2: {
@@ -195,6 +197,13 @@ export const watchRoom = (roomId: string, callback: (data: RoomData | null) => v
 export const deleteRoom = async (roomId: string) => {
   const roomRef = ref(db, `rooms/${roomId}`);
   await remove(roomRef);
+};
+
+// テーマ設定を更新
+export const updateRoomTheme = async (roomId: string, theme: 'modern' | 'classic') => {
+  const roomRef = ref(db, `rooms/${roomId}/theme`);
+  await set(roomRef, theme);
+  console.log('テーマ設定更新:', roomId, 'テーマ:', theme);
 };
 
 // Firebase接続テスト
