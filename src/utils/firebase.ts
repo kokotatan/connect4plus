@@ -39,15 +39,33 @@ export interface RoomData {
 }
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBimWEhK2F7QXf65qRILkHaNXPY1w7vUUo",
-  authDomain: "connect4plus-bacf3.firebaseapp.com",
-  projectId: "connect4plus-bacf3",
-  storageBucket: "connect4plus-bacf3.appspot.com",
-  messagingSenderId: "859106739926",
-  appId: "1:859106739926:web:d4a9e7fe0456cb924f2b77",
-  measurementId: "G-90J6BHR9LZ",
-  databaseURL: "https://connect4plus-bacf3-default-rtdb.asia-southeast1.firebasedatabase.app" // 追加
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
 };
+
+// 環境変数の検証
+const requiredEnvVars = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_DATABASE_URL'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required Firebase environment variables:', missingEnvVars);
+  if (typeof window === 'undefined') {
+    // サーバーサイドでのエラー
+    throw new Error(`Firebase configuration error: Missing environment variables: ${missingEnvVars.join(', ')}`);
+  }
+}
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = getDatabase(app, firebaseConfig.databaseURL); // 明示的に指定

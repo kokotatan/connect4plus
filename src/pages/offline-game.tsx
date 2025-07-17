@@ -26,11 +26,11 @@ export default function OfflineGamePage() {
       }
       
       if (winScore && typeof winScore === 'string') {
-        setGameSettings(prev => ({ ...prev, winScore: parseInt(winScore) }));
+        setGameSettings(prev => ({ ...prev, winScore: parseInt(winScore) as 1 | 3 | 5 }));
       }
       
       if (timeLimit && typeof timeLimit === 'string') {
-        setGameSettings(prev => ({ ...prev, timeLimit: parseInt(timeLimit) }));
+        setGameSettings(prev => ({ ...prev, timeLimit: timeLimit as 'none' | '30s' | '1m' }));
       }
     }
   }, [router.isReady, router.query]);

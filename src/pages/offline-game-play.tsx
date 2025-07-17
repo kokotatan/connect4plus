@@ -240,7 +240,9 @@ export default function OfflineGamePlayPage() {
           }
           
           // Connect4成立時の視覚的フィードバック
-          setConnect4Player(type);
+          if (type === 'player1' || type === 'player2') {
+            setConnect4Player(type);
+          }
           setConnect4Message(`${playerName}がConnect4しました！`);
           setConnect4Visible(true);
           await new Promise(res => setTimeout(res, 2000));
@@ -311,7 +313,9 @@ export default function OfflineGamePlayPage() {
           }
           
           // Connect4成立時の視覚的フィードバック
-          setConnect4Player(type);
+          if (type === 'player1' || type === 'player2') {
+            setConnect4Player(type);
+          }
           setConnect4Message(`${playerName}がConnect4しました！`);
           setConnect4Visible(true);
           await new Promise(res => setTimeout(res, 2000));
@@ -574,7 +578,6 @@ export default function OfflineGamePlayPage() {
                 onColumnClick={handleColumnClick}
                 onColumnHover={handleColumnHover}
                 onColumnLeave={handleColumnLeave}
-                isProcessing={isProcessing}
               />
             </div>
           </div>
