@@ -250,54 +250,112 @@ export default function GamePlayScreen({
         comboing = false;
         comboChainCount++;
         // 1. どちらのプレイヤーも4つ揃いがあるか判定
-        const combos = [
-          { type: 'player1' as PlayerType, result: checkForCombos(newBoard, 'player1') },
-          { type: 'player2' as PlayerType, result: checkForCombos(newBoard, 'player2') },
-        ];
-        // 2. 星セル化・スコア加算
+        const player1Combo = checkForCombos(newBoard, 'player1');
+        const player2Combo = checkForCombos(newBoard, 'player2');
+        
+        // 2. プレイヤーごとに順次処理
         let foundCombo = false;
-        combos.forEach(({ type, result }) => {
-          if (result.hasCombo) {
-            foundCombo = true;
-            
-            // Connect4成立時の視覚的フィードバック
-            const playerName = type === 'player1' ? player1.name : player2.name;
-            const isMyConnect4 = (currentPlayerType === 'player1' && type === 'player1') || 
-                                 (currentPlayerType === 'player2' && type === 'player2');
-            
-            setConnect4Player(type === 'player1' ? 'player1' : 'player2');
-            setConnect4Message(
-              isMyConnect4 
-                ? `${playerName}がConnect4しました！` 
-                : `${playerName}がConnect4しました！`
-            );
-            setConnect4Visible(true);
-            
-            // Connect4表示を2秒間表示（相手のConnect4も見やすく）
-            setTimeout(() => {
-              setConnect4Visible(false);
-              setConnect4Player(null);
-              setConnect4Message('');
-            }, 2000); // 1.5秒 → 2秒
-            
-            newBoard = newBoard.map((row, rIdx) =>
-              row.map((cell, cIdx) =>
-                result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
-                  ? { ...cell, state: 'star', player: type }
-                  : cell
-              )
-            ) as CellState[][];
-            setGameBoard(newBoard);
-            if (type === 'player1') {
-              localScore1++;
-              tempPlayer1Score++;
-            }
-            if (type === 'player2') {
-              localScore2++;
-              tempPlayer2Score++;
-            }
+        let currentTurnPlayerCombo = null;
+        let opponentPlayerCombo = null;
+        
+        // 現在のターンプレイヤーのconnect4を先に処理
+        if (player1.isTurn && player1Combo.hasCombo) {
+          currentTurnPlayerCombo = { type: 'player1' as PlayerType, result: player1Combo };
+        } else if (player2.isTurn && player2Combo.hasCombo) {
+          currentTurnPlayerCombo = { type: 'player2' as PlayerType, result: player2Combo };
+        }
+        
+        // 相手プレイヤーのconnect4を後で処理
+        if (player1.isTurn && player2Combo.hasCombo) {
+          opponentPlayerCombo = { type: 'player2' as PlayerType, result: player2Combo };
+        } else if (player2.isTurn && player1Combo.hasCombo) {
+          opponentPlayerCombo = { type: 'player1' as PlayerType, result: player1Combo };
+        }
+        
+        // 現在のターンプレイヤーのconnect4を処理
+        if (currentTurnPlayerCombo) {
+          foundCombo = true;
+          const { type, result } = currentTurnPlayerCombo;
+          const playerName = type === 'player1' ? player1.name : player2.name;
+          const isMyConnect4 = (currentPlayerType === 'player1' && type === 'player1') || 
+                               (currentPlayerType === 'player2' && type === 'player2');
+          
+          // Connect4成立時の視覚的フィードバック
+          setConnect4Player(type === 'player1' ? 'player1' : 'player2');
+          setConnect4Message(
+            isMyConnect4 
+              ? `${playerName}がConnect4しました！` 
+              : `${playerName}がConnect4しました！`
+          );
+          setConnect4Visible(true);
+          
+          // Connect4表示を2秒間表示（相手のConnect4も見やすく）
+          setTimeout(() => {
+            setConnect4Visible(false);
+            setConnect4Player(null);
+            setConnect4Message('');
+          }, 2000); // 1.5秒 → 2秒
+          
+          newBoard = newBoard.map((row, rIdx) =>
+            row.map((cell, cIdx) =>
+              result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
+                ? { ...cell, state: 'star', player: type }
+                : cell
+            )
+          ) as CellState[][];
+          setGameBoard(newBoard);
+          if (type === 'player1') {
+            localScore1++;
+            tempPlayer1Score++;
           }
-        });
+          if (type === 'player2') {
+            localScore2++;
+            tempPlayer2Score++;
+          }
+        }
+        
+        // 相手プレイヤーのconnect4を処理（現在のターンプレイヤーの処理が終わった後）
+        if (opponentPlayerCombo) {
+          foundCombo = true;
+          const { type, result } = opponentPlayerCombo;
+          const playerName = type === 'player1' ? player1.name : player2.name;
+          const isMyConnect4 = (currentPlayerType === 'player1' && type === 'player1') || 
+                               (currentPlayerType === 'player2' && type === 'player2');
+          
+          // Connect4成立時の視覚的フィードバック
+          setConnect4Player(type === 'player1' ? 'player1' : 'player2');
+          setConnect4Message(
+            isMyConnect4 
+              ? `${playerName}がConnect4しました！` 
+              : `${playerName}がConnect4しました！`
+          );
+          setConnect4Visible(true);
+          
+          // Connect4表示を2秒間表示（相手のConnect4も見やすく）
+          setTimeout(() => {
+            setConnect4Visible(false);
+            setConnect4Player(null);
+            setConnect4Message('');
+          }, 2000); // 1.5秒 → 2秒
+          
+          newBoard = newBoard.map((row, rIdx) =>
+            row.map((cell, cIdx) =>
+              result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
+                ? { ...cell, state: 'star', player: type }
+                : cell
+            )
+          ) as CellState[][];
+          setGameBoard(newBoard);
+          if (type === 'player1') {
+            localScore1++;
+            tempPlayer1Score++;
+          }
+          if (type === 'player2') {
+            localScore2++;
+            tempPlayer2Score++;
+          }
+        }
+        
         if (!foundCombo) break;
         
         // COMBO!演出を表示（2回目以降のCOMBOで、実際にCOMBOが発生した場合のみ）
@@ -307,13 +365,13 @@ export default function GamePlayScreen({
           setTimeout(() => setComboVisible(false), 2000);
         }
 
-        // 3. 星セルを一定時間後に消去（持続時間を調整）
+        // 3. 星セルを一定時間後に消去（両プレイヤーのconnect4処理が終わった後）
         await new Promise(res => setTimeout(res, 1200)); // 1500ms → 1200ms
-        combos.forEach(({ result }) => {
-          if (result.hasCombo) {
+        [currentTurnPlayerCombo, opponentPlayerCombo].forEach((combo) => {
+          if (combo && combo.result.hasCombo) {
             newBoard = newBoard.map((row, rIdx) =>
               row.map((cell, cIdx) =>
-                result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
+                combo.result.cellsToRemove.some(([rowIdx, colIdx]) => rowIdx === rIdx && colIdx === cIdx)
                   ? { state: 'empty' }
                   : cell
               )
@@ -561,8 +619,8 @@ export default function GamePlayScreen({
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 sm:mt-4 w-full">
                 <button
                   onClick={handleGoHome}
-                  className="px-4 sm:px-8 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
-                  aria-label="タイトル画面に戻る"
+                  className="px-6 py-2 bg-gray-400 text-white rounded-full text-base font-semibold shadow hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
+                  aria-label="タイトルに戻る"
                 >
                   タイトルに戻る
                 </button>

@@ -596,7 +596,7 @@ export default function OfflineGamePlayPage() {
               className="px-6 py-2 bg-gray-400 text-white rounded-full text-base font-semibold shadow hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
               aria-label="タイトルに戻る"
             >
-              🏠 タイトルに戻る
+              タイトルに戻る
             </button>
             {/* もう一度遊ぶボタンは対戦中は非表示 */}
             {gameOver && (
