@@ -257,7 +257,7 @@ export default function GamePlayScreen({
         let foundCombo = false;
         let currentTurnPlayerCombo = null;
         let opponentPlayerCombo = null;
-        
+
         // 現在のターンプレイヤーのconnect4を先に処理
         if (player1.isTurn && player1Combo.hasCombo) {
           currentTurnPlayerCombo = { type: 'player1' as PlayerType, result: player1Combo };
@@ -279,7 +279,7 @@ export default function GamePlayScreen({
           const playerName = type === 'player1' ? player1.name : player2.name;
           const isMyConnect4 = (currentPlayerType === 'player1' && type === 'player1') || 
                                (currentPlayerType === 'player2' && type === 'player2');
-          
+        
           // Connect4成立時の視覚的フィードバック
           setConnect4Player(type === 'player1' ? 'player1' : 'player2');
           setConnect4Message(
@@ -290,7 +290,7 @@ export default function GamePlayScreen({
           setConnect4Visible(true);
           
           // Connect4表示を2秒間表示（相手のConnect4も見やすく）
-          setTimeout(() => {
+        setTimeout(() => {
             setConnect4Visible(false);
             setConnect4Player(null);
             setConnect4Message('');
@@ -349,7 +349,7 @@ export default function GamePlayScreen({
           if (type === 'player1') {
             localScore1++;
             tempPlayer1Score++;
-          }
+              }
           if (type === 'player2') {
             localScore2++;
             tempPlayer2Score++;
@@ -376,7 +376,7 @@ export default function GamePlayScreen({
                   : cell
               )
             );
-          }
+      }
         });
         setGameBoard(newBoard);
         // 4. 重力適用
@@ -636,7 +636,7 @@ export default function GamePlayScreen({
                 >
                   もう一度遊ぶ
                 </button>
-              </div>
+          </div>
             </div>
           </div>
         )}

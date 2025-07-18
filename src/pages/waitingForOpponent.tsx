@@ -232,7 +232,9 @@ export default function WaitingForOpponentScreen() {
           </div>
           
           {/* 固定BGMコントロールボタン */}
-          <BGMControlButton />
+          <div className="fixed bottom-4 right-4 z-50">
+            <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
+          </div>
         </div>
       </Layout>
     );
@@ -314,7 +316,9 @@ export default function WaitingForOpponentScreen() {
         <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
         
         {/* 固定BGMコントロールボタン */}
-        <BGMControlButton />
+        <div className="fixed bottom-4 right-4 z-50">
+          <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
+        </div>
         
       </Layout>
     );
@@ -399,7 +403,9 @@ export default function WaitingForOpponentScreen() {
         <RulesPopup isVisible={showRules} onClose={() => setShowRules(false)} />
         
         {/* 固定BGMコントロールボタン */}
-        <BGMControlButton />
+        <div className="fixed bottom-4 right-4 z-50">
+          <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
+        </div>
         
     </Layout>
   );
