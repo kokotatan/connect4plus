@@ -10,10 +10,6 @@
     {
       "source": "/game/connect4plus/(.*)",
       "destination": "/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/$1"
     }
   ],
   "headers": [
