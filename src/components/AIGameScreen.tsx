@@ -438,13 +438,13 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     let comboing = true;
     let localScore1 = 0;
     let localScore2 = 0;
-    let comboChainCount = 0;
+    let player1ComboCount = 0; // プレイヤー1のCOMBO回数
+    let player2ComboCount = 0; // プレイヤー2のCOMBO回数
     let tempPlayer1Score = player1.score;
     let tempPlayer2Score = player2.score;
     let comboWin = false;
     while (comboing) {
       comboing = false;
-      comboChainCount++;
       // 1. どちらのプレイヤーも4つ揃いがあるか判定
       const player1Combo = checkForCombos(newBoard, 'player1');
       const player2Combo = checkForCombos(newBoard, 'player2');
@@ -473,6 +473,13 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         foundCombo = true;
         const { type, result } = currentTurnPlayerCombo;
         const playerName = type === 'player1' ? player1.name : player2.name;
+        
+        // COMBO回数をカウント
+        if (type === 'player1') {
+          player1ComboCount++;
+        } else {
+          player2ComboCount++;
+        }
         
         // Connect4成立時の視覚的フィードバック
         setConnect4Player(type === 'player1' ? 'player1' : 'player2');
@@ -510,6 +517,13 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         const { type, result } = opponentPlayerCombo;
         const playerName = type === 'player1' ? player1.name : player2.name;
         
+        // COMBO回数をカウント
+        if (type === 'player1') {
+          player1ComboCount++;
+        } else {
+          player2ComboCount++;
+        }
+        
         // Connect4成立時の視覚的フィードバック
         setConnect4Player(type === 'player1' ? 'player1' : 'player2');
         setConnect4Message(`${playerName}がConnect4しました！`);
@@ -540,11 +554,15 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         }
       }
       
-      // COMBO!演出を表示
-      if (comboChainCount > 1 && foundCombo) {
-        setComboCount(comboChainCount);
+      // COMBO!演出を表示（プレイヤーごとに独立して表示）
+      if (player1ComboCount > 1) {
+        setComboCount(player1ComboCount);
         setComboVisible(true);
-        setTimeout(() => setComboVisible(false), 2000); // 1200ms → 2000ms
+        setTimeout(() => setComboVisible(false), 2000);
+      } else if (player2ComboCount > 1) {
+        setComboCount(player2ComboCount);
+        setComboVisible(true);
+        setTimeout(() => setComboVisible(false), 2000);
       }
       // ここで勝利判定
       if (checkWinCondition(tempPlayer1Score, gameSettings.winScore)) {
@@ -679,8 +697,11 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       player2Type: player2.type
     });
     
-    setIsProcessing(false);
-  }, [isProcessing, gameOver, player1.isTurn, player1.score, player2.score, gameBoard, gameSettings.winScore]);
+    // ターン交代後に少し遅延を入れてから処理完了
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 500); // 0.5秒の遅延を追加
+  }, [isProcessing, gameOver, player1.score, player2.score, gameBoard, gameSettings.winScore]); // player1.isTurn, player2.isTurnを依存配列から削除
 
   // AIの手番を監視
   useEffect(() => {
@@ -711,7 +732,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     });
     
     if (shouldAIMove) {
-      const delay = 1000; // 固定で1秒後に実行
+      const delay = 1500; // 1秒 → 1.5秒に延長
       console.log(`AI手番開始: ${delay}ms後に実行`);
       setTimeout(() => {
         handleAITurn();
@@ -721,15 +742,15 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = useCallback(async (columnIndex: number) => {
-    // プレイヤーの手番のみ処理
-    if (player1.isTurn) {
+    // プレイヤーの手番のみ処理（先手表示オーバーレイ中は除外）
+    if (player1.isTurn && !showFirstTurnOverlay) {
       await handleColumnClickDirect(columnIndex, 'player');
     }
-  }, [player1.isTurn, handleColumnClickDirect]);
+  }, [handleColumnClickDirect, showFirstTurnOverlay]); // showFirstTurnOverlayを依存配列に追加
 
-  // ハイライト（プレイヤーの番の時のみ）
+  // ハイライト（プレイヤーの番の時のみ、先手表示オーバーレイ中は除外）
   const handleColumnHover = (col: number) => { 
-    if (!isProcessing && !gameOver && player1.isTurn) setHighlightedColumn(col); 
+    if (!isProcessing && !gameOver && player1.isTurn && !showFirstTurnOverlay) setHighlightedColumn(col); 
   };
   const handleColumnLeave = () => { setHighlightedColumn(null); };
 
@@ -755,7 +776,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setPlayer2(newPlayer2);
     setShowStrengthPopup(false);
     
-    // ゲームをリセット
+    // ゲームをリセット（ターン設定はhandleStartGameで行うため除外）
     setGameBoard(createEmptyBoard());
     setTimers({ player1: 0, player2: 0 });
     setGameOver(false);
@@ -770,8 +791,11 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setConnect4Visible(false);
     setConnect4Player(null);
     setConnect4Message('');
-    setPlayer1(prev => ({ ...prev, isTurn: true, score: 0 }));
-    setPlayer2(prev => ({ ...prev, isTurn: false, score: 0 }));
+    // ターン設定はhandleStartGameで行うため削除
+    // setPlayer1(prev => ({ ...prev, isTurn: true, score: 0 }));
+    // setPlayer2(prev => ({ ...prev, isTurn: false, score: 0 }));
+    setPlayer1(prev => ({ ...prev, score: 0 }));
+    setPlayer2(prev => ({ ...prev, score: 0 }));
     setGameStarted(false);
     setGameStarting(false);
     setLotteryPhase(false);
@@ -797,6 +821,15 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     // BGMをフェードアウトしてから遷移
     setTimeout(() => {
       router.push('/');
+    }, 500);
+  };
+
+  // 対戦相手を変えるボタン押下時
+  const handleChangeOpponent = () => {
+    // ホームBGMに切り替えてから遷移
+    switchToHomeBGM();
+    setTimeout(() => {
+      router.push(`/?playerName=${encodeURIComponent(playerName)}&scrollToAI=true&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
     }, 500);
   };
 
@@ -839,6 +872,14 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         setPlayer2(prev => ({ ...prev, isTurn: player2Turn }));
         setLastMoveColumn(null);
         setLastMoveRow(null);
+        
+        console.log('ターン設定完了:', {
+          player1Turn,
+          player2Turn,
+          player1Name: player1.name,
+          player2Name: player2.name,
+          player2Type: player2.type
+        });
         
         // 先手表示オーバーレイを表示
         const firstTurnName = firstTurn === 'player1' ? player1.name : player2.name;
@@ -1155,14 +1196,21 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 sm:mt-4 w-full">
                 <button
                   onClick={handleGoHome}
-                  className="px-4 sm:px-8 py-2 bg-gray-200 text-gray-700 rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
+                  className="px-4 sm:px-6 py-2 bg-gray-400 text-white rounded-full text-sm sm:text-base font-semibold shadow hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
                   aria-label="ホーム画面に戻る"
                 >
                   ホームに戻る
                 </button>
                 <button
+                  onClick={handleChangeOpponent}
+                  className="px-4 sm:px-6 py-2 bg-purple-400 text-white rounded-full text-sm sm:text-base font-semibold shadow hover:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors min-h-[44px]"
+                  aria-label="対戦相手を変える"
+                >
+                  対戦相手を変える
+                </button>
+                <button
                   onClick={handleStartWithNewStrength}
-                  className="px-4 sm:px-8 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-lg font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
+                  className="px-4 sm:px-6 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-base font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
                   aria-label="同じAIキャラクターで再戦"
                 >
                   もう一度同じ強さで再戦

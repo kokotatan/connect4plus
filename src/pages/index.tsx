@@ -34,6 +34,41 @@ export default function HomePage() {
     }
   }, [router.isReady, router.query.roomId]);
 
+  // URLパラメータから名前を復元し、AI戦セクションにスクロール
+  useEffect(() => {
+    if (router.isReady) {
+      // 名前の復元
+      if (router.query.playerName && typeof router.query.playerName === 'string') {
+        setAiPlayerName(decodeURIComponent(router.query.playerName));
+      }
+      
+      // ゲーム設定の復元
+      if (router.query.winScore && typeof router.query.winScore === 'string') {
+        const winScore = parseInt(router.query.winScore) as 1 | 3 | 5;
+        if ([1, 3, 5].includes(winScore)) {
+          setGameSettings(prev => ({ ...prev, winScore }));
+        }
+      }
+      
+      if (router.query.timeLimit && typeof router.query.timeLimit === 'string') {
+        const timeLimit = router.query.timeLimit as 'none' | '30s' | '1m';
+        if (['none', '30s', '1m'].includes(timeLimit)) {
+          setGameSettings(prev => ({ ...prev, timeLimit }));
+        }
+      }
+      
+      // AI戦セクションへのスクロール
+      if (router.query.scrollToAI === 'true') {
+        setTimeout(() => {
+          document.getElementById('ai-title')?.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }, 100);
+      }
+    }
+  }, [router.isReady, router.query.playerName, router.query.scrollToAI, router.query.winScore, router.query.timeLimit]);
+
   // Firebase接続テスト
   useEffect(() => {
     const testConnection = async () => {
