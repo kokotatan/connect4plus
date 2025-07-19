@@ -27,6 +27,13 @@ export interface PlayerInfo {
   type: PlayerCharacterType;
 } 
 
+// ゲーム結果の型定義
+export interface GameResult {
+  result: 'win' | 'lose' | 'draw' | 'timeup';
+  winner?: string;
+  timeUpPlayer?: 'player1' | 'player2';
+}
+
 // ゲーム設定の型定義
 export interface GameSettings {
   winScore: 1 | 3 | 5;           // 勝利に必要なスコア

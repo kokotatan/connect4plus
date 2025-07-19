@@ -6,7 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import GameGrid from '../components/GameGrid';
 import ScoreGauge from '../components/ScoreGauge';
 import RulesPopup from '../components/RulesPopup';
-import { CellState, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS, PlayerType } from '../types/game';
+import { CellState, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS, PlayerType, GameResult } from '../types/game';
 import { createEmptyBoard, checkForCombos, checkForCombosAfterGravity, applyGravity, checkWinCondition, isColumnFull } from '../utils/gameLogic';
 
 export default function OfflineGamePlayPage() {
@@ -72,8 +72,13 @@ export default function OfflineGamePlayPage() {
   const [timers, setTimers] = useState({ player1: 0, player2: 0 });
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [gameOver, setGameOver] = useState(false);
-  const [result, setResult] = useState<{ result: 'win' | 'draw'; winner?: string } | null>(null);
+  const [result, setResult] = useState<GameResult | null>(null);
   const [finalBoard, setFinalBoard] = useState<CellState[][] | null>(null);
+
+  // 制限時間関連の状態
+  const [timeUpPlayer, setTimeUpPlayer] = useState<'player1' | 'player2' | null>(null);
+  const [showTimeUpMessage, setShowTimeUpMessage] = useState(false);
+  const [timeWarning, setTimeWarning] = useState<'player1' | 'player2' | null>(null);
 
   // Connect4/COMBO演出
   const [connect4Visible, setConnect4Visible] = useState(false);
@@ -146,11 +151,82 @@ export default function OfflineGamePlayPage() {
     };
   }, [gameStarted, gameOver, player1.isTurn, player2.isTurn]);
 
+  // 制限時間チェック
+  useEffect(() => {
+    checkTimeUp();
+    checkTimeWarning();
+  }, [timers]);
+
   // 時間表示
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // 制限時間表示
+  const getTimeLimitDisplay = () => {
+    if (gameSettings.timeLimit === 'none') return null;
+    return gameSettings.timeLimit === '30s' ? '00:30' : '01:00';
+  };
+
+  // タイマーの警告クラス
+  const getTimerWarningClass = (player: 'player1' | 'player2') => {
+    if (gameSettings.timeLimit === 'none') return '';
+    if (timeWarning === player) return 'text-red-500 animate-pulse';
+    if (timeUpPlayer === player) return 'text-red-600 font-bold';
+    return '';
+  };
+
+  // 制限時間切れ判定
+  const checkTimeUp = () => {
+    if (gameSettings.timeLimit === 'none' || gameOver) return;
+    
+    const timeLimit = gameSettings.timeLimit === '30s' ? 30 : 60;
+    
+    if (timers.player1 >= timeLimit && !timeUpPlayer) {
+      handleTimeUp('player1');
+    }
+    if (timers.player2 >= timeLimit && !timeUpPlayer) {
+      handleTimeUp('player2');
+    }
+  };
+
+  // 時間切れ処理
+  const handleTimeUp = (player: 'player1' | 'player2') => {
+    setTimeUpPlayer(player);
+    setShowTimeUpMessage(true);
+    setGameOver(true);
+    
+    const winner = player === 'player1' ? player2.name : player1.name;
+    
+    setResult({
+      result: 'timeup',
+      winner: winner,
+      timeUpPlayer: player
+    });
+    setFinalBoard(gameBoard);
+    
+    // 時間切れメッセージを3秒間表示
+    setTimeout(() => {
+      setShowTimeUpMessage(false);
+    }, 3000);
+  };
+
+  // 時間警告の管理
+  const checkTimeWarning = () => {
+    if (gameSettings.timeLimit === 'none' || gameOver) return;
+    
+    const timeLimit = gameSettings.timeLimit === '30s' ? 30 : 60;
+    
+    // 残り10秒以下で警告
+    if (timers.player1 >= timeLimit - 10 && timers.player1 < timeLimit) {
+      setTimeWarning('player1');
+    } else if (timers.player2 >= timeLimit - 10 && timers.player2 < timeLimit) {
+      setTimeWarning('player2');
+    } else {
+      setTimeWarning(null);
+    }
   };
 
   // 列クリック
@@ -576,7 +652,12 @@ export default function OfflineGamePlayPage() {
                 {player1.name}
                 <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: colors.player1Color }} title="プレイヤー1のコマ色" />
               </div>
-              <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player1)}</div>
+              <div className={`text-xs sm:text-base font-mono tracking-wider ${getTimerWarningClass('player1')}`}>
+                {formatTime(timers.player1)}
+                {getTimeLimitDisplay() && (
+                  <span className="text-gray-400 ml-1">/ {getTimeLimitDisplay()}</span>
+                )}
+              </div>
               <div className="w-full mt-2 flex justify-center"><ScoreGauge score={player1.score} maxScore={gameSettings.winScore} playerType={player1.type} /></div>
             </div>
             {/* VS */}
@@ -588,7 +669,12 @@ export default function OfflineGamePlayPage() {
                 {player2.name}
                 <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: colors.player2Color }} title="プレイヤー2のコマ色" />
               </div>
-              <div className="text-gray-500 text-xs sm:text-base font-mono tracking-wider">{formatTime(timers.player2)}</div>
+              <div className={`text-xs sm:text-base font-mono tracking-wider ${getTimerWarningClass('player2')}`}>
+                {formatTime(timers.player2)}
+                {getTimeLimitDisplay() && (
+                  <span className="text-gray-400 ml-1">/ {getTimeLimitDisplay()}</span>
+                )}
+              </div>
               <div className="w-full mt-2 flex justify-center"><ScoreGauge score={player2.score} maxScore={gameSettings.winScore} playerType={player2.type} /></div>
             </div>
           </div>
@@ -682,7 +768,7 @@ export default function OfflineGamePlayPage() {
               {result.result === 'win' && (
                 <div className="flex flex-col items-center -mt-12 sm:-mt-16 mb-2 sm:mb-3 z-10">
                   <img
-                    src={result.winner === player1.name ? '/assets/Avater/Avater/happy_graycat.png' : '/assets/Avater/Avater/happy_tiger.png'}
+                    src={result.winner === player1.name ? player1.avatar : player2.avatar}
                     className="w-16 h-16 sm:w-24 sm:h-24 rounded-full shadow-2xl border-4 border-emerald-400"
                     style={{ objectFit: 'cover' }}
                     alt="Winner Avatar"
@@ -690,46 +776,47 @@ export default function OfflineGamePlayPage() {
                   <div className="mt-1 text-xs text-gray-600">勝者</div>
                 </div>
               )}
-              {result.result === 'draw' && (
-                <div className="flex flex-col items-center -mt-12 sm:-mt-16 mb-2 sm:mb-3 z-10">
-                  <div className="flex gap-1 sm:gap-2">
-                    <img
-                      src="/assets/Avater/Avater/crying_graycat.png"
-                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full shadow-2xl border-4 border-gray-400"
-                      style={{ objectFit: 'cover' }}
-                      alt="Player 1 Avatar"
-                    />
-                    <img
-                      src="/assets/Avater/Avater/crying_tiger.png"
-                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-full shadow-2xl border-4 border-gray-400"
-                      style={{ objectFit: 'cover' }}
-                      alt="Player 2 Avatar"
-                    />
-                  </div>
-                  <div className="mt-1 text-xs text-gray-600">引き分け</div>
-                </div>
-              )}
               <div className="text-xl sm:text-3xl font-extrabold text-emerald-500 mb-2 text-center whitespace-nowrap">
-                {result.result === 'win' ? `${result.winner}の勝ち！` : '引き分け'}
+                {result.result === 'win' ? `${result.winner}の勝ち！` : 
+                 result.result === 'timeup' ? `${result.winner}の勝ち！（時間切れ）` : 
+                 '引き分け'}
               </div>
               <div className="w-full flex justify-center mb-2 sm:mb-3">
                 <div className="scale-75 sm:scale-100">
                   <GameGrid board={finalBoard} />
                 </div>
               </div>
-              <div className="flex gap-2 sm:gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-2 sm:mt-4 w-full">
                 <button
                   onClick={handleBackToHome}
-                  className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transition-colors text-sm sm:text-base"
+                  className="px-4 sm:px-6 py-2 bg-gray-400 text-white rounded-full text-sm sm:text-base font-semibold shadow hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors min-h-[44px]"
+                  aria-label="ホーム画面に戻る"
                 >
-                  ゲームを終わる
+                  ホームに戻る
                 </button>
                 <button
                   onClick={handleRematch}
-                  className="px-4 sm:px-6 py-2 sm:py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors text-sm sm:text-base"
+                  className="px-4 sm:px-6 py-2 bg-emerald-400 text-white rounded-full text-sm sm:text-base font-semibold shadow hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors min-h-[44px]"
+                  aria-label="同じ設定で再戦"
                 >
-                  もう一戦！！
+                  もう一度同じ設定で再戦
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 時間切れメッセージポップアップ */}
+        {showTimeUpMessage && timeUpPlayer && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-gradient-to-br from-red-50 to-white rounded-2xl shadow-xl p-6 mx-4 max-w-sm text-center border-2 border-red-300">
+              <div className="text-4xl mb-3 text-red-500">⏰</div>
+              <div className="text-xl font-bold text-red-600 mb-2">時間切れ！</div>
+              <div className="text-base font-semibold text-gray-700 bg-white rounded-lg p-2">
+                {timeUpPlayer === 'player1' ? player1.name : player2.name}の時間が切れました
+              </div>
+              <div className="text-lg font-bold text-emerald-600 mt-2">
+                {timeUpPlayer === 'player1' ? player2.name : player1.name}の勝利！
               </div>
             </div>
           </div>
