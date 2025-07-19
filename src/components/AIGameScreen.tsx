@@ -8,7 +8,7 @@ import { BGMControlButton } from '../components/BGMControlButton';
 import { useBGM } from '../contexts/BGMContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { CellState, PlayerType, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
-import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkWinCondition } from '../utils/gameLogic';
+import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkForCombosAfterGravity, checkWinCondition } from '../utils/gameLogic';
 import { AILevel, aiMove, getAIAvatar, getAIName, getAIThinkingTime, getAllAICharacters } from '../utils/aiLogic';
 
 interface AIGameScreenProps {
@@ -594,7 +594,15 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       setGameBoard(newBoard);
       // 5. 少し待ってから次の連鎖判定
       await new Promise(res => setTimeout(res, 300));
-      comboing = true;
+      
+      // 重力適用後のConnect4判定（下から順に処理）
+      const player1ComboAfterGravity = checkForCombosAfterGravity(newBoard, 'player1');
+      const player2ComboAfterGravity = checkForCombosAfterGravity(newBoard, 'player2');
+      
+      // 重力適用後に新たなConnect4がある場合は連鎖を継続
+      if (player1ComboAfterGravity.hasCombo || player2ComboAfterGravity.hasCombo) {
+        comboing = true;
+      }
     }
     if (comboWin) return;
     

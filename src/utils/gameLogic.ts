@@ -123,14 +123,47 @@ export const applyGravity = (board: CellState[][]): CellState[][] => {
 export const checkForCombos = (board: CellState[][], player: PlayerType): ComboResult => {
   const cellsToRemove: [number, number][] = [];
   
-  // 全セルをチェック
-  for (let row = 0; row < BOARD_HEIGHT; row++) {
+  // 下から上に向かってセルをチェック（重力の影響を考慮）
+  for (let row = BOARD_HEIGHT - 1; row >= 0; row--) {
     for (let col = 0; col < BOARD_WIDTH; col++) {
       const cell = board[row][col];
       if (cell.state === 'normal' && cell.player === player) {
         const result = checkForConnect4(board, col, row, player);
         if (result.hasConnect4) {
           cellsToRemove.push(...result.cellsToRemove);
+        }
+      }
+    }
+  }
+  
+  return {
+    hasCombo: cellsToRemove.length > 0,
+    cellsToRemove: cellsToRemove
+  };
+};
+
+// 重力適用後のConnect4判定を下から順に行う（重複を避けるため）
+export const checkForCombosAfterGravity = (board: CellState[][], player: PlayerType): ComboResult => {
+  const cellsToRemove: [number, number][] = [];
+  const processedCells = new Set<string>(); // 既に処理済みのセルを記録
+  
+  // 下から上に向かってセルをチェック（重力の影響を考慮）
+  for (let row = BOARD_HEIGHT - 1; row >= 0; row--) {
+    for (let col = 0; col < BOARD_WIDTH; col++) {
+      const cell = board[row][col];
+      if (cell.state === 'normal' && cell.player === player) {
+        const result = checkForConnect4(board, col, row, player);
+        if (result.hasConnect4) {
+          // 重複を避けるため、既に処理済みのセルはスキップ
+          const newCells = result.cellsToRemove.filter(([r, c]) => {
+            const key = `${r},${c}`;
+            if (processedCells.has(key)) {
+              return false;
+            }
+            processedCells.add(key);
+            return true;
+          });
+          cellsToRemove.push(...newCells);
         }
       }
     }

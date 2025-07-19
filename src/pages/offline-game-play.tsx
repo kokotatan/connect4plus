@@ -7,7 +7,7 @@ import GameGrid from '../components/GameGrid';
 import ScoreGauge from '../components/ScoreGauge';
 import RulesPopup from '../components/RulesPopup';
 import { CellState, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS, PlayerType } from '../types/game';
-import { createEmptyBoard, checkForCombos, applyGravity, checkWinCondition, isColumnFull } from '../utils/gameLogic';
+import { createEmptyBoard, checkForCombos, checkForCombosAfterGravity, applyGravity, checkWinCondition, isColumnFull } from '../utils/gameLogic';
 
 export default function OfflineGamePlayPage() {
   const router = useRouter();
@@ -398,7 +398,15 @@ export default function OfflineGamePlayPage() {
         
         // 5. 少し待ってから次の連鎖判定
         await new Promise(res => setTimeout(res, 500));
-        comboing = true;
+        
+        // 重力適用後のConnect4判定（下から順に処理）
+        const player1ComboAfterGravity = checkForCombosAfterGravity(newBoard, 'player1');
+        const player2ComboAfterGravity = checkForCombosAfterGravity(newBoard, 'player2');
+        
+        // 重力適用後に新たなConnect4がある場合は連鎖を継続
+        if (player1ComboAfterGravity.hasCombo || player2ComboAfterGravity.hasCombo) {
+          comboing = true;
+        }
       }
       
       if (comboWin) {
