@@ -235,7 +235,7 @@ export default function GamePlayScreen({
       // セルを置く
       let newBoard: CellState[][] = gameBoard.map((row, rIdx) =>
         row.map((cell, cIdx) => (rIdx === targetRow && cIdx === columnIndex ? { state: 'normal', player: playerType } : cell))
-      );
+    );
       setGameBoard(newBoard);
       setLastMoveColumn(columnIndex);
       setLastMoveRow(targetRow);
@@ -292,7 +292,7 @@ export default function GamePlayScreen({
               : `${playerName}がConnect4しました！`
           );
           setConnect4Visible(true);
-          
+        
           // Connect4表示を2秒間表示（相手のConnect4も見やすく）
         setTimeout(() => {
             setConnect4Visible(false);
@@ -361,7 +361,7 @@ export default function GamePlayScreen({
         }
         
         if (!foundCombo) break;
-        
+              
         // COMBO!演出を表示（2回目以降のCOMBOで、実際にCOMBOが発生した場合のみ）
         if (comboChainCount > 1 && hasComboOccurred) {
           setComboCount(comboChainCount);
@@ -450,7 +450,7 @@ export default function GamePlayScreen({
         syncGameState(newBoard, newPlayer1, newPlayer2, true, winner);
         setIsProcessing(false);
             return;
-      }
+          }
       
       // 引き分け判定
       if (newBoard.every(row => row.every(cell => cell.state !== 'empty'))) {

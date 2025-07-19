@@ -349,7 +349,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       // handleColumnClickを直接呼び出し（AIの手番として明示）
       await handleColumnClickDirect(aiColumn, 'ai');
     }
-  }, [isProcessing, gameOver, aiLevel, selectedStrength, player2.name, gameBoard]);
+  }, [isProcessing, gameOver, aiLevel, selectedStrength, gameBoard]); // player2.nameを依存配列から削除
 
   // 直接的なセルクリック処理（循環参照を避けるため）
   const handleColumnClickDirect = useCallback(async (columnIndex: number, caller?: 'ai' | 'player') => {
@@ -684,42 +684,30 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
   // AIの手番を監視
   useEffect(() => {
-    // AIは「player2.isTurn && !player1.isTurn && !isProcessing && !gameOver && gameStarted」の時だけ動く
-    // より厳格な条件チェックを追加
-    const shouldAIMove = player2.isTurn && 
-                        !player1.isTurn && 
-                        !isProcessing && 
-                        !gameOver && 
-                        gameStarted &&
-                        player2.type === 'ai' && // AIプレイヤーであることを確認
-                        !showFirstTurnMessage && // 初回メッセージ表示中は動かない
-                        !showFirstTurnOverlay; // 先手表示オーバーレイ表示中は動かない
+    const shouldAIMove = gameStarted && 
+      !isProcessing && 
+      !gameOver && 
+      player2.isTurn && 
+      player2.type === 'ai' &&
+      !showFirstTurnMessage &&
+      !showFirstTurnOverlay;
     
-    console.log('=== AI手番監視 ===');
-    console.log('条件チェック:', {
-      player2Turn: player2.isTurn,
-      player1Turn: player1.isTurn,
+    console.log('AI手番判定:', {
+      shouldAIMove,
+      gameStarted,
       isProcessing,
       gameOver,
-      gameStarted,
+      player2Turn: player2.isTurn,
       player2Type: player2.type,
       showFirstTurnMessage,
       showFirstTurnOverlay,
-      shouldAIMove
-    });
-    console.log('AI動作判定:', {
-      isAITurn: player2.isTurn,
-      isPlayerTurn: player1.isTurn,
-      canAIMove: shouldAIMove,
-      reason: !shouldAIMove ? 
-        (!player2.isTurn ? 'AIの手番ではない' :
-         player1.isTurn ? 'プレイヤーの手番' :
+      reason: !gameStarted ? 'ゲーム未開始' :
          isProcessing ? '処理中' :
          gameOver ? 'ゲーム終了' :
-         !gameStarted ? 'ゲーム未開始' :
+         !player2.isTurn ? 'AIの番ではない' :
          player2.type !== 'ai' ? 'AIプレイヤーではない' :
          showFirstTurnMessage ? '初回メッセージ表示中' :
-         showFirstTurnOverlay ? '先手表示オーバーレイ表示中' : 'その他') : 'AI動作可能'
+         showFirstTurnOverlay ? '先手表示オーバーレイ表示中' : 'その他'
     });
     
     if (shouldAIMove) {
@@ -729,7 +717,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         handleAITurn();
       }, delay);
     }
-  }, [player2.isTurn, player1.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, showFirstTurnOverlay, handleAITurn, player2.type]);
+  }, [player2.isTurn, player1.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, showFirstTurnOverlay, handleAITurn]); // player2.typeを依存配列から削除
 
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = useCallback(async (columnIndex: number) => {
@@ -778,6 +766,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setScoreEffects([]);
     setFireworkVisible(false);
     setLastMoveColumn(null);
+    setLastMoveRow(null);
     setConnect4Visible(false);
     setConnect4Player(null);
     setConnect4Message('');
@@ -790,11 +779,15 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setShowFirstTurnMessage(false);
     setShowFirstTurnOverlay(false);
     setFirstTurnPlayerName('');
+    setAiThinking(false);
+    setAiThinkingText('');
+    setAiThinkingPhase(0);
+    setShowMathBackground(false);
     
-    // 新しいゲームを開始
+    // 新しいゲームを開始（少し遅延を入れて状態リセットを確実にする）
     setTimeout(() => {
       handleStartGame();
-    }, 100);
+    }, 200);
   };
 
   // タイトルに戻るボタン押下時
@@ -855,6 +848,13 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         // 1.7秒後に先手表示を消してゲーム開始
         setTimeout(() => {
           setShowFirstTurnOverlay(false);
+          
+          // AIが先手の場合は少し遅延を入れてからAI手番を開始
+          if (player2Turn) {
+            setTimeout(() => {
+              console.log('AI先手: 手番開始');
+            }, 500);
+          }
         }, 1700);
         
         // フェードインで再生開始
