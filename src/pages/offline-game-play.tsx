@@ -67,6 +67,7 @@ export default function OfflineGamePlayPage() {
   const [gameBoard, setGameBoard] = useState<CellState[][]>(createEmptyBoard());
   const [highlightedColumn, setHighlightedColumn] = useState<number | null>(null);
   const [lastMoveColumn, setLastMoveColumn] = useState<number | null>(null);
+  const [lastMoveRow, setLastMoveRow] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [timers, setTimers] = useState({ player1: 0, player2: 0 });
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -169,6 +170,7 @@ export default function OfflineGamePlayPage() {
     setIsProcessing(true);
     setHighlightedColumn(null);
     setLastMoveColumn(columnIndex);
+    setLastMoveRow(targetRow); // lastMoveRowを更新
     try {
       // セルを置く
       let newBoard: CellState[][] = gameBoard.map((row, rIdx) =>
@@ -257,6 +259,8 @@ export default function OfflineGamePlayPage() {
             setGameOver(true);
             setResult({ result: 'win', winner: player1.name });
             setFinalBoard(newBoard);
+            setLastMoveColumn(null);
+            setLastMoveRow(null);
             setFireworkVisible(true);
             setTimeout(() => setFireworkVisible(false), 3000);
             comboWin = true;
@@ -268,6 +272,8 @@ export default function OfflineGamePlayPage() {
             setGameOver(true);
             setResult({ result: 'win', winner: player2.name });
             setFinalBoard(newBoard);
+            setLastMoveColumn(null);
+            setLastMoveRow(null);
             setFireworkVisible(true);
             setTimeout(() => setFireworkVisible(false), 3000);
             comboWin = true;
@@ -330,6 +336,8 @@ export default function OfflineGamePlayPage() {
             setGameOver(true);
             setResult({ result: 'win', winner: player1.name });
             setFinalBoard(newBoard);
+            setLastMoveColumn(null);
+            setLastMoveRow(null);
             setFireworkVisible(true);
             setTimeout(() => setFireworkVisible(false), 3000);
             comboWin = true;
@@ -341,6 +349,8 @@ export default function OfflineGamePlayPage() {
             setGameOver(true);
             setResult({ result: 'win', winner: player2.name });
             setFinalBoard(newBoard);
+            setLastMoveColumn(null);
+            setLastMoveRow(null);
             setFireworkVisible(true);
             setTimeout(() => setFireworkVisible(false), 3000);
             comboWin = true;
@@ -407,6 +417,8 @@ export default function OfflineGamePlayPage() {
         setGameOver(true);
         setResult({ result: 'win', winner: p1Win ? player1.name : player2.name });
         setFinalBoard(newBoard);
+        setLastMoveColumn(null);
+        setLastMoveRow(null);
         setIsProcessing(false);
         return;
       }
@@ -416,6 +428,8 @@ export default function OfflineGamePlayPage() {
         setGameOver(true);
         setResult({ result: 'draw' });
         setFinalBoard(newBoard);
+        setLastMoveColumn(null);
+        setLastMoveRow(null);
         setIsProcessing(false);
         return;
       }
@@ -445,17 +459,20 @@ export default function OfflineGamePlayPage() {
     
     // ゲーム状態をリセット
     setGameBoard(createEmptyBoard());
-    setPlayer1(prev => ({ ...prev, score: 0, isTurn: false }));
+    setPlayer1(prev => ({ ...prev, score: 0, isTurn: true }));
     setPlayer2(prev => ({ ...prev, score: 0, isTurn: false }));
     setGameOver(false);
     setResult(null);
     setFinalBoard(null);
-    setTimers({ player1: 0, player2: 0 });
-    setScoreEffects([]);
-    setConnect4Visible(false);
+    setLastMoveColumn(null);
+    setLastMoveRow(null);
     setComboVisible(false);
+    setComboCount(0);
     setFireworkVisible(false);
-    setGameStarted(false);
+    setConnect4Visible(false);
+    setConnect4Player(null);
+    setConnect4Message('');
+    setGameStarted(true);
     
     // 先手抽選を開始
     setGameStarting(true);
@@ -575,6 +592,7 @@ export default function OfflineGamePlayPage() {
                 board={gameBoard}
                 highlightedColumn={highlightedColumn}
                 lastMoveColumn={lastMoveColumn}
+                lastMoveRow={lastMoveRow}
                 onColumnClick={handleColumnClick}
                 onColumnHover={handleColumnHover}
                 onColumnLeave={handleColumnLeave}

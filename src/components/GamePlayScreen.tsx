@@ -40,6 +40,8 @@ export default function GamePlayScreen({
   const [player2, setPlayer2] = useState<PlayerInfo>({ ...initialPlayer2, avatar: AVATERS.player2 });
   const [gameBoard, setGameBoard] = useState<CellState[][]>(createEmptyBoard());
   const [highlightedColumn, setHighlightedColumn] = useState<number | null>(null);
+  const [lastMoveColumn, setLastMoveColumn] = useState<number | null>(null);
+  const [lastMoveRow, setLastMoveRow] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [timers, setTimers] = useState({ player1: 0, player2: 0 });
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -233,8 +235,10 @@ export default function GamePlayScreen({
       // セルを置く
       let newBoard: CellState[][] = gameBoard.map((row, rIdx) =>
         row.map((cell, cIdx) => (rIdx === targetRow && cIdx === columnIndex ? { state: 'normal', player: playerType } : cell))
-    );
+      );
       setGameBoard(newBoard);
+      setLastMoveColumn(columnIndex);
+      setLastMoveRow(targetRow);
     
       // 盤面が安定するまで両プレイヤーで連鎖判定
       let comboing = true;
@@ -430,6 +434,8 @@ export default function GamePlayScreen({
         const winner = p1Win ? player1.name : player2.name;
         setResult({ result: 'win', winner });
         setFinalBoard(newBoard);
+        setLastMoveColumn(null);
+        setLastMoveRow(null);
         // 勝利時の花火エフェクト
         setFireworkVisible(true);
         setTimeout(() => setFireworkVisible(false), 3000);
@@ -443,6 +449,8 @@ export default function GamePlayScreen({
         setGameOver(true);
         setResult({ result: 'draw' });
         setFinalBoard(newBoard);
+        setLastMoveColumn(null);
+        setLastMoveRow(null);
         syncGameState(newBoard, newPlayer1, newPlayer2, true);
         setIsProcessing(false);
         return;
@@ -555,6 +563,8 @@ export default function GamePlayScreen({
               <GameGrid
                 board={gameBoard}
                 highlightedColumn={highlightedColumn}
+                lastMoveColumn={lastMoveColumn}
+                lastMoveRow={lastMoveRow}
                 onColumnClick={handleColumnClick}
                 onColumnHover={handleColumnHover}
                 onColumnLeave={handleColumnLeave}

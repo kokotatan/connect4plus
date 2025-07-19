@@ -47,6 +47,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   const [gameBoard, setGameBoard] = useState<CellState[][]>(createEmptyBoard());
   const [highlightedColumn, setHighlightedColumn] = useState<number | null>(null);
   const [lastMoveColumn, setLastMoveColumn] = useState<number | null>(null);
+  const [lastMoveRow, setLastMoveRow] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [timers, setTimers] = useState({ player1: 0, player2: 0 });
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -399,6 +400,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     
     setIsProcessing(true);
     setLastMoveColumn(columnIndex); // 最後に置いた列を記録
+    setLastMoveRow(targetRow); // 最後に置いた行を記録
     setHighlightedColumn(null); // コマを置いた直後にホバー解除
     
     // セルを置く
@@ -551,6 +553,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         setGameOver(true);
         setResult({ result: 'win', winner: player1.name });
         setFinalBoard(newBoard);
+        setLastMoveColumn(null);
+        setLastMoveRow(null);
         setFireworkVisible(true);
         setTimeout(() => setFireworkVisible(false), 3000);
         comboWin = true;
@@ -562,6 +566,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         setGameOver(true);
         setResult({ result: 'win', winner: player2.name });
         setFinalBoard(newBoard);
+        setLastMoveColumn(null);
+        setLastMoveRow(null);
         setFireworkVisible(true);
         setTimeout(() => setFireworkVisible(false), 3000);
         comboWin = true;
@@ -634,6 +640,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       setGameOver(true);
       setResult({ result: 'win', winner: p1Win ? player1.name : player2.name });
       setFinalBoard(newBoard);
+      setLastMoveColumn(null);
+      setLastMoveRow(null);
       // 勝利時の花火エフェクト
       setFireworkVisible(true);
       setTimeout(() => setFireworkVisible(false), 3000);
@@ -646,6 +654,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       setGameOver(true);
       setResult({ result: 'draw' });
       setFinalBoard(newBoard);
+      setLastMoveColumn(null);
+      setLastMoveRow(null);
       setIsProcessing(false);
       return;
     }
@@ -826,6 +836,8 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
         
         setPlayer1(prev => ({ ...prev, isTurn: player1Turn }));
         setPlayer2(prev => ({ ...prev, isTurn: player2Turn }));
+        setLastMoveColumn(null);
+        setLastMoveRow(null);
         
         // 先手表示オーバーレイを表示
         const firstTurnName = firstTurn === 'player1' ? player1.name : player2.name;
@@ -1001,6 +1013,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
                 board={gameBoard}
                 highlightedColumn={highlightedColumn}
                 lastMoveColumn={lastMoveColumn}
+                lastMoveRow={lastMoveRow}
                 onColumnClick={handleColumnClick}
                 onColumnHover={handleColumnHover}
                 onColumnLeave={handleColumnLeave}

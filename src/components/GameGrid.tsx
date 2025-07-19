@@ -7,6 +7,7 @@ export type GameGridProps = {
   board: CellState[][];
   highlightedColumn?: number | null;
   lastMoveColumn?: number | null;
+  lastMoveRow?: number | null;
   onColumnClick?: (col: number) => void;
   onColumnHover?: (col: number) => void;
   onColumnLeave?: () => void;
@@ -23,6 +24,8 @@ const BOARD_PIXEL_HEIGHT = BOARD_HEIGHT * CELL_SIZE + (BOARD_HEIGHT - 1) * CELL_
 export const GameGrid: React.FC<GameGridProps> = ({
   board,
   highlightedColumn = null,
+  lastMoveColumn = null,
+  lastMoveRow = null,
   onColumnClick,
   onColumnHover,
   onColumnLeave,
@@ -105,6 +108,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
         {board.map((row, rowIdx) =>
           row.map((cell, colIdx) => {
             const isPreview = highlightedColumn === colIdx && rowIdx === getPreviewPosition(colIdx);
+            const isLatestMove = lastMoveColumn === colIdx && lastMoveRow === rowIdx;
             
             return (
               <div
@@ -154,9 +158,26 @@ export const GameGrid: React.FC<GameGridProps> = ({
                       }}
                     />
                   )}
+                  {/* 最新のコマに白い点を表示 */}
+                  {isLatestMove && cell.state !== 'empty' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        boxShadow: '0 0 4px rgba(0, 0, 0, 0.3)',
+                        zIndex: 5,
+                      }}
+                    />
+                  )}
                 </div>
-  </div>
-);
+              </div>
+            );
           })
         )}
       </div>
