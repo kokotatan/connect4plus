@@ -6,6 +6,7 @@ import { GameEffects } from '../components/GameEffects';
 import RulesPopup from '../components/RulesPopup';
 import { BGMControlButton } from '../components/BGMControlButton';
 import { useBGM } from '../contexts/BGMContext';
+import { useSoundEffects } from '../hooks/useSoundEffects';
 import { CellState, PlayerType, PlayerInfo, GameResult } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkForCombosAfterGravity, checkWinCondition } from '../utils/gameLogic';
 import { ref, set, onValue, off, update } from 'firebase/database';
@@ -36,6 +37,7 @@ export default function GamePlayScreen({
 }: GamePlayScreenProps) {
   const router = useRouter();
   const { switchToHomeBGM } = useBGM();
+  const { playTurnChangeSound } = useSoundEffects();
   const [player1, setPlayer1] = useState<PlayerInfo>({ ...initialPlayer1, avatar: AVATERS.player1 });
   const [player2, setPlayer2] = useState<PlayerInfo>({ ...initialPlayer2, avatar: AVATERS.player2 });
   const [gameBoard, setGameBoard] = useState<CellState[][]>(createEmptyBoard());
@@ -57,6 +59,13 @@ export default function GamePlayScreen({
   // セッション情報からプレイヤーを識別
   const [currentPlayerInfo, setCurrentPlayerInfo] = useState<FirebasePlayerInfo | null>(null);
   const [currentPlayerType, setCurrentPlayerType] = useState<'player1' | 'player2' | null>(null);
+
+  // 相手の最後の手を追跡（オンライン対戦用）
+  const [opponentLastMove, setOpponentLastMove] = useState<{ column: number; row: number } | null>(null);
+  const [showOpponentMove, setShowOpponentMove] = useState(false);
+
+  // 前のターン状態を追跡（手番交代音用）
+  const [previousTurn, setPreviousTurn] = useState<'player1' | 'player2' | null>(null);
 
   useEffect(() => {
     if (isOnlineMode) {
@@ -116,22 +125,47 @@ export default function GamePlayScreen({
           // ゲーム進行中の場合は、処理中でない場合のみ更新
           if (!isProcessing) {
             setGameBoard(data.board || createEmptyBoard());
+            
+            // 相手の最後の手を検出
+            if (data.lastMove && data.lastMovePlayer !== currentPlayerType) {
+              setOpponentLastMove({
+                column: data.lastMove.column,
+                row: data.lastMove.row
+              });
+              setShowOpponentMove(true);
+              // 相手の手の表示を3秒後に消す
+              setTimeout(() => setShowOpponentMove(false), 3000);
+            }
           }
         }
         
         // プレイヤー情報の更新（自分の情報は保持）
-        setPlayer1(prev => ({ 
-          ...prev, 
+        const newPlayer1 = { 
+          ...player1, 
           isTurn: data.currentTurn === 'player1', 
           score: data.player1Score || 0,
-          name: currentPlayerType === 'player1' ? prev.name : (data.player1Name || prev.name)
-        }));
-        setPlayer2(prev => ({ 
-          ...prev, 
+          name: currentPlayerType === 'player1' ? player1.name : (data.player1Name || player1.name)
+        };
+        const newPlayer2 = { 
+          ...player2, 
           isTurn: data.currentTurn === 'player2', 
           score: data.player2Score || 0,
-          name: currentPlayerType === 'player2' ? prev.name : (data.player2Name || prev.name)
-        }));
+          name: currentPlayerType === 'player2' ? player2.name : (data.player2Name || player2.name)
+        };
+        
+        // 手番交代の検出と音声再生
+        const currentTurn = data.currentTurn === 'player1' ? 'player1' : 'player2';
+        if (previousTurn && previousTurn !== currentTurn) {
+          // 自分の番になった場合のみ音声再生
+          if ((currentPlayerType === 'player1' && currentTurn === 'player1') ||
+              (currentPlayerType === 'player2' && currentTurn === 'player2')) {
+            playTurnChangeSound();
+          }
+        }
+        setPreviousTurn(currentTurn);
+        
+        setPlayer1(newPlayer1);
+        setPlayer2(newPlayer2);
         setGameOver(data.gameOver || false);
 
         // ゲーム終了時の処理
@@ -149,10 +183,10 @@ export default function GamePlayScreen({
     return () => {
       unsubscribe();
     };
-  }, [isOnlineMode, roomId, isProcessing, currentPlayerType, gameOver]);
+  }, [isOnlineMode, roomId, isProcessing, currentPlayerType, gameOver, previousTurn, playTurnChangeSound]);
 
   // ゲーム状態をFirebaseに同期（オンラインモード時）
-  const syncGameState = (newBoard: CellState[][], newPlayer1: PlayerInfo, newPlayer2: PlayerInfo, newGameOver: boolean, newWinner?: string) => {
+  const syncGameState = (newBoard: CellState[][], newPlayer1: PlayerInfo, newPlayer2: PlayerInfo, newGameOver: boolean, newWinner?: string, lastMove?: { column: number; row: number }) => {
     if (!isOnlineMode || !roomId) return;
 
     const gameStateRef = ref(db, `rooms/${roomId}/gameState`);
@@ -164,7 +198,9 @@ export default function GamePlayScreen({
       player1Name: newPlayer1.name,
       player2Name: newPlayer2.name,
       gameOver: newGameOver,
-      winner: newWinner || null
+      winner: newWinner || null,
+      lastMove: lastMove || null,
+      lastMovePlayer: currentPlayerType
     });
   };
 
@@ -362,24 +398,18 @@ export default function GamePlayScreen({
           foundCombo = true;
           const { type, result } = currentTurnPlayerCombo;
           const playerName = type === 'player1' ? player1.name : player2.name;
-          const isMyConnect4 = (currentPlayerType === 'player1' && type === 'player1') || 
-                               (currentPlayerType === 'player2' && type === 'player2');
         
-          // Connect4成立時の視覚的フィードバック
+          // Connect4成立時の視覚的フィードバック（常に表示）
           setConnect4Player(type === 'player1' ? 'player1' : 'player2');
-          setConnect4Message(
-            isMyConnect4 
-              ? `${playerName}がConnect4しました！` 
-              : `${playerName}がConnect4しました！`
-          );
+          setConnect4Message(`${playerName}がConnect4しました！`);
           setConnect4Visible(true);
         
-          // Connect4表示を2秒間表示（相手のConnect4も見やすく）
-        setTimeout(() => {
+          // Connect4表示を2秒間表示
+          setTimeout(() => {
             setConnect4Visible(false);
             setConnect4Player(null);
             setConnect4Message('');
-          }, 2000); // 1.5秒 → 2秒
+          }, 2000);
           
           newBoard = newBoard.map((row, rIdx) =>
             row.map((cell, cIdx) =>
@@ -404,24 +434,18 @@ export default function GamePlayScreen({
           foundCombo = true;
           const { type, result } = opponentPlayerCombo;
           const playerName = type === 'player1' ? player1.name : player2.name;
-          const isMyConnect4 = (currentPlayerType === 'player1' && type === 'player1') || 
-                               (currentPlayerType === 'player2' && type === 'player2');
           
-          // Connect4成立時の視覚的フィードバック
+          // Connect4成立時の視覚的フィードバック（常に表示）
           setConnect4Player(type === 'player1' ? 'player1' : 'player2');
-          setConnect4Message(
-            isMyConnect4 
-              ? `${playerName}がConnect4しました！` 
-              : `${playerName}がConnect4しました！`
-          );
+          setConnect4Message(`${playerName}がConnect4しました！`);
           setConnect4Visible(true);
           
-          // Connect4表示を2秒間表示（相手のConnect4も見やすく）
+          // Connect4表示を2秒間表示
           setTimeout(() => {
             setConnect4Visible(false);
             setConnect4Player(null);
             setConnect4Message('');
-          }, 2000); // 1.5秒 → 2秒
+          }, 2000);
           
           newBoard = newBoard.map((row, rIdx) =>
             row.map((cell, cIdx) =>
@@ -434,7 +458,7 @@ export default function GamePlayScreen({
           if (type === 'player1') {
             localScore1++;
             tempPlayer1Score++;
-              }
+          }
           if (type === 'player2') {
             localScore2++;
             tempPlayer2Score++;
@@ -528,10 +552,10 @@ export default function GamePlayScreen({
         // 勝利時の花火エフェクト
         setFireworkVisible(true);
         setTimeout(() => setFireworkVisible(false), 3000);
-        syncGameState(newBoard, newPlayer1, newPlayer2, true, winner);
+        syncGameState(newBoard, newPlayer1, newPlayer2, true, winner, { column: columnIndex, row: targetRow });
         setIsProcessing(false);
-            return;
-          }
+        return;
+      }
       
       // 引き分け判定
       if (newBoard.every(row => row.every(cell => cell.state !== 'empty'))) {
@@ -540,14 +564,14 @@ export default function GamePlayScreen({
         setFinalBoard(newBoard);
         setLastMoveColumn(null);
         setLastMoveRow(null);
-        syncGameState(newBoard, newPlayer1, newPlayer2, true);
+        syncGameState(newBoard, newPlayer1, newPlayer2, true, undefined, { column: columnIndex, row: targetRow });
         setIsProcessing(false);
         return;
       }
       
       // オンラインモード時はFirebaseに同期
       if (isOnlineMode) {
-        syncGameState(newBoard, newPlayer1, newPlayer2, false);
+        syncGameState(newBoard, newPlayer1, newPlayer2, false, undefined, { column: columnIndex, row: targetRow });
       }
 
       setIsProcessing(false);
@@ -664,6 +688,8 @@ export default function GamePlayScreen({
                 highlightedColumn={highlightedColumn}
                 lastMoveColumn={lastMoveColumn}
                 lastMoveRow={lastMoveRow}
+                opponentLastMove={opponentLastMove}
+                showOpponentMove={showOpponentMove}
                 onColumnClick={handleColumnClick}
                 onColumnHover={handleColumnHover}
                 onColumnLeave={handleColumnLeave}

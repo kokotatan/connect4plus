@@ -8,6 +8,8 @@ export type GameGridProps = {
   highlightedColumn?: number | null;
   lastMoveColumn?: number | null;
   lastMoveRow?: number | null;
+  opponentLastMove?: { column: number; row: number } | null;
+  showOpponentMove?: boolean;
   onColumnClick?: (col: number) => void;
   onColumnHover?: (col: number) => void;
   onColumnLeave?: () => void;
@@ -26,6 +28,8 @@ export const GameGrid: React.FC<GameGridProps> = ({
   highlightedColumn = null,
   lastMoveColumn = null,
   lastMoveRow = null,
+  opponentLastMove = null,
+  showOpponentMove = false,
   onColumnClick,
   onColumnHover,
   onColumnLeave,
@@ -109,6 +113,8 @@ export const GameGrid: React.FC<GameGridProps> = ({
           row.map((cell, colIdx) => {
             const isPreview = highlightedColumn === colIdx && rowIdx === getPreviewPosition(colIdx);
             const isLatestMove = lastMoveColumn === colIdx && lastMoveRow === rowIdx;
+            const isOpponentMove = showOpponentMove && opponentLastMove && 
+                                 opponentLastMove.column === colIdx && opponentLastMove.row === rowIdx;
             
             return (
               <div
@@ -175,9 +181,27 @@ export const GameGrid: React.FC<GameGridProps> = ({
                       }}
                     />
                   )}
+                  {/* 相手の最後の手に赤い点を表示 */}
+                  {isOpponentMove && cell.state !== 'empty' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 0, 0, 0.9)',
+                        boxShadow: '0 0 6px rgba(255, 0, 0, 0.6)',
+                        zIndex: 5,
+                        animation: 'pulse 0.8s infinite',
+                      }}
+                    />
+                  )}
                 </div>
-  </div>
-);
+              </div>
+            );
           })
         )}
       </div>
