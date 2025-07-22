@@ -11,7 +11,7 @@ export default function RoomCreatedScreen() {
   const [roomId, setRoomId] = useState('');
   const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const router = useRouter();
-  const { roomId: urlRoomId, player1Name } = router.query;
+  const { roomId: urlRoomId, player1Name, winScore, timeLimit } = router.query;
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -20,11 +20,28 @@ export default function RoomCreatedScreen() {
       router.replace('/');
       return;
     }
+    
+    // ゲーム設定をURLパラメータから取得
+    const settings: GameSettings = { ...DEFAULT_GAME_SETTINGS };
+    if (winScore && typeof winScore === 'string') {
+      const winScoreNum = parseInt(winScore) as 1 | 3 | 5;
+      if ([1, 3, 5].includes(winScoreNum)) {
+        settings.winScore = winScoreNum;
+      }
+    }
+    if (timeLimit && typeof timeLimit === 'string') {
+      const timeLimitValue = timeLimit as 'none' | '30s' | '1m';
+      if (['none', '30s', '1m'].includes(timeLimitValue)) {
+        settings.timeLimit = timeLimitValue;
+      }
+    }
+    setGameSettings(settings);
+    
     setRoomId(urlRoomId as string);
     const newInviteUrl = `${window.location.origin}/?roomId=${urlRoomId}`;
     setInviteUrl(newInviteUrl);
     setReady(true);
-  }, [urlRoomId, player1Name, router]);
+  }, [urlRoomId, player1Name, winScore, timeLimit, router]);
 
   const handleCopyUrl = () => {
     if (inviteUrl) {

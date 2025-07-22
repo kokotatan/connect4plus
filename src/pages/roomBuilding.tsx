@@ -5,19 +5,26 @@ import { BGMControlButton } from '../components/BGMControlButton';
 
 export default function RoomBuildingScreen() {
   const router = useRouter();
-  const { roomId, player1Name } = router.query;
+  const { roomId, player1Name, winScore, timeLimit } = router.query;
 
   useEffect(() => {
     if (!router.isReady) return;
     const timer = setTimeout(() => {
       if (roomId && player1Name) {
-        router.push(`/roomCreated?roomId=${roomId}&player1Name=${player1Name}`);
+        // ゲーム設定パラメータを含めて遷移
+        const params = new URLSearchParams();
+        params.append('roomId', roomId as string);
+        params.append('player1Name', player1Name as string);
+        if (winScore) params.append('winScore', winScore as string);
+        if (timeLimit) params.append('timeLimit', timeLimit as string);
+        
+        router.push(`/roomCreated?${params.toString()}`);
       } else {
         router.push('/');
       }
     }, 2000); // 2秒後に遷移
     return () => clearTimeout(timer);
-  }, [router, roomId, player1Name]);
+  }, [router, roomId, player1Name, winScore, timeLimit]);
 
   return (
     <Layout>

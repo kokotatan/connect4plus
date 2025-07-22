@@ -122,8 +122,12 @@ export default function GamePlayScreen({
           // 空の盤面の場合のみ初期状態を設定
           setGameBoard(data.board || createEmptyBoard());
         } else {
-          // ゲーム進行中の場合は、処理中でない場合のみ更新
-          if (!isProcessing) {
+          // ゲーム進行中の場合は、相手の番の時は処理中でも更新を許可
+          const currentTurn = data.currentTurn === 'player1' ? 'player1' : 'player2';
+          const isOpponentTurn = (currentPlayerType === 'player1' && currentTurn === 'player2') ||
+                                (currentPlayerType === 'player2' && currentTurn === 'player1');
+          
+          if (!isProcessing || isOpponentTurn) {
             setGameBoard(data.board || createEmptyBoard());
             
             // 相手の最後の手を検出
@@ -186,7 +190,7 @@ export default function GamePlayScreen({
   }, [isOnlineMode, roomId, isProcessing, currentPlayerType, gameOver, previousTurn, playTurnChangeSound]);
 
   // ゲーム状態をFirebaseに同期（オンラインモード時）
-  const syncGameState = (newBoard: CellState[][], newPlayer1: PlayerInfo, newPlayer2: PlayerInfo, newGameOver: boolean, newWinner?: string, lastMove?: { column: number; row: number }) => {
+  const syncGameState = (newBoard: CellState[][], newPlayer1: PlayerInfo, newPlayer2: PlayerInfo, newGameOver: boolean, newWinner?: string, lastMove?: { column: number; row: number }, animationState?: { phase: 'star' | 'fade' | 'gravity' | 'complete' }) => {
     if (!isOnlineMode || !roomId) return;
 
     const gameStateRef = ref(db, `rooms/${roomId}/gameState`);
@@ -200,7 +204,8 @@ export default function GamePlayScreen({
       gameOver: newGameOver,
       winner: newWinner || null,
       lastMove: lastMove || null,
-      lastMovePlayer: currentPlayerType
+      lastMovePlayer: currentPlayerType,
+      animationState: animationState || null
     });
   };
 
@@ -419,6 +424,12 @@ export default function GamePlayScreen({
             )
           ) as CellState[][];
           setGameBoard(newBoard);
+          
+          // オンラインモード時は星セル状態を同期
+          if (isOnlineMode) {
+            syncGameState(newBoard, player1, player2, false, undefined, { column: columnIndex, row: targetRow }, { phase: 'star' });
+          }
+          
           if (type === 'player1') {
             localScore1++;
             tempPlayer1Score++;
@@ -455,6 +466,12 @@ export default function GamePlayScreen({
             )
           ) as CellState[][];
           setGameBoard(newBoard);
+          
+          // オンラインモード時は星セル状態を同期
+          if (isOnlineMode) {
+            syncGameState(newBoard, player1, player2, false, undefined, { column: columnIndex, row: targetRow }, { phase: 'star' });
+          }
+          
           if (type === 'player1') {
             localScore1++;
             tempPlayer1Score++;
@@ -485,13 +502,25 @@ export default function GamePlayScreen({
                   : cell
               )
             );
-      }
+          }
         });
         setGameBoard(newBoard);
+        
+        // オンラインモード時は消去状態を同期
+        if (isOnlineMode) {
+          syncGameState(newBoard, player1, player2, false, undefined, { column: columnIndex, row: targetRow }, { phase: 'fade' });
+        }
+        
         // 4. 重力適用
         await new Promise(res => setTimeout(res, 300));
         newBoard = applyGravity(newBoard);
         setGameBoard(newBoard);
+        
+        // オンラインモード時は重力適用後の状態を同期
+        if (isOnlineMode) {
+          syncGameState(newBoard, player1, player2, false, undefined, { column: columnIndex, row: targetRow }, { phase: 'gravity' });
+        }
+        
         // 5. 少し待ってから次の連鎖判定
         await new Promise(res => setTimeout(res, 300));
         
@@ -571,7 +600,7 @@ export default function GamePlayScreen({
       
       // オンラインモード時はFirebaseに同期
       if (isOnlineMode) {
-        syncGameState(newBoard, newPlayer1, newPlayer2, false, undefined, { column: columnIndex, row: targetRow });
+        syncGameState(newBoard, newPlayer1, newPlayer2, false, undefined, { column: columnIndex, row: targetRow }, { phase: 'complete' });
       }
 
       setIsProcessing(false);
