@@ -7,11 +7,13 @@ import RulesPopup from '../components/RulesPopup';
 import { BGMControlButton } from '../components/BGMControlButton';
 import { useBGM } from '../contexts/BGMContext';
 import { useSoundEffects } from '../hooks/useSoundEffects';
+import { useTheme } from '../contexts/ThemeContext';
 import { CellState, PlayerType, PlayerInfo, GameResult } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkForCombosAfterGravity, checkWinCondition } from '../utils/gameLogic';
 import { ref, set, onValue, off, update } from 'firebase/database';
 import { db, getPlayerInfo, PlayerInfo as FirebasePlayerInfo } from '../utils/firebase';
 import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
+import { truncatePlayerName } from '../utils/textUtils';
 
 interface GamePlayScreenProps {
   player1: PlayerInfo;
@@ -38,6 +40,7 @@ export default function GamePlayScreen({
   const router = useRouter();
   const { switchToHomeBGM } = useBGM();
   const { playTurnChangeSound } = useSoundEffects();
+  const { colors } = useTheme();
   const [player1, setPlayer1] = useState<PlayerInfo>({ ...initialPlayer1, avatar: AVATERS.player1 });
   const [player2, setPlayer2] = useState<PlayerInfo>({ ...initialPlayer2, avatar: AVATERS.player2 });
   const [gameBoard, setGameBoard] = useState<CellState[][]>(createEmptyBoard());
@@ -410,7 +413,7 @@ export default function GamePlayScreen({
           setConnect4Visible(true);
         
           // Connect4表示を2秒間表示
-          setTimeout(() => {
+        setTimeout(() => {
             setConnect4Visible(false);
             setConnect4Player(null);
             setConnect4Message('');
@@ -644,7 +647,8 @@ export default function GamePlayScreen({
       // ready状態をリセットしてから遷移
       const readyRef = ref(db, `rooms/${roomId}/ready`);
       set(readyRef, { player1: false, player2: false });
-      router.push(`/waitingForOpponent?roomId=${roomId}`);
+      // ゲーム設定を保持して再戦
+      router.push(`/waitingForOpponent?roomId=${roomId}&player1Name=${player1.name}&player2Name=${player2.name}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
       return;
     }
     // オフライン・AI戦の場合は従来通り
@@ -679,8 +683,8 @@ export default function GamePlayScreen({
           <div className={`flex flex-col items-center transition-all duration-300 ${player1.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-2 py-1 sm:px-3 sm:py-2`}> 
             <img src={player1.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
             <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
-              {player1.name}
-              <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: '#4D6869' }} title="あなたのコマ色" />
+              {truncatePlayerName(player1.name)}
+              <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: colors.player1Color }} title="プレイヤー1のコマ色" />
             </div>
             <div className={`text-xs sm:text-base font-mono tracking-wider ${getTimerWarningClass('player1')}`}>
               {formatTime(timers.player1)}
@@ -696,8 +700,8 @@ export default function GamePlayScreen({
           <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-2 py-1 sm:px-3 sm:py-2`}>
             <img src={player2.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
             <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
-              {player2.name}
-              <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: '#55B89C' }} title="あなたのコマ色" />
+              {truncatePlayerName(player2.name)}
+              <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: colors.player2Color }} title="プレイヤー2のコマ色" />
             </div>
             <div className={`text-xs sm:text-base font-mono tracking-wider ${getTimerWarningClass('player2')}`}>
               {formatTime(timers.player2)}
@@ -711,7 +715,7 @@ export default function GamePlayScreen({
         {/* ゲーム盤面 */}
         <div className="flex flex-col items-center w-full">
           <div className="flex justify-center items-center">
-            <div className="rounded-3xl shadow-2xl p-4 bg-[#D9F2E1]">
+            <div className="rounded-3xl shadow-2xl p-4" style={{ background: colors.boardBackground }}>
               <GameGrid
                 board={gameBoard}
                 highlightedColumn={highlightedColumn}
@@ -802,7 +806,7 @@ export default function GamePlayScreen({
                 >
                   もう一度遊ぶ
                 </button>
-              </div>
+          </div>
             </div>
           </div>
         )}
@@ -822,8 +826,8 @@ export default function GamePlayScreen({
             </div>
           </div>
         )}
-      </div>
-      
+        </div>
+
       {/* 演出エフェクト */}
       <GameEffects
         comboVisible={comboVisible}
@@ -843,7 +847,7 @@ export default function GamePlayScreen({
             <div className="text-xl font-bold text-emerald-600 mb-2">Connect4!</div>
             <div className="text-base font-semibold text-gray-700 bg-white rounded-lg p-2">
               {connect4Message}
-            </div>
+        </div>
           </div>
         </div>
       )}

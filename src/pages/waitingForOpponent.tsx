@@ -9,6 +9,7 @@ import { ref, set, onValue, off, update } from 'firebase/database';
 import { db } from '../utils/firebase';
 import { createEmptyBoard } from '../utils/gameLogic';
 import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
+import { truncatePlayerName } from '../utils/textUtils';
 
 const GRAYCAT_PLAYING = '/assets/Avater/PosingAvater/graycat_playing.png';
 const TIGER_PLAYING = '/assets/Avater/PosingAvater/tiger_playing.png';
@@ -64,10 +65,10 @@ export default function WaitingForOpponentScreen() {
   const currentPlayerType = playerInfo?.isPlayer1 ? 'player1' : 'player2';
   const [readyState, setReadyState] = useState<{ player1: boolean; player2: boolean }>({ player1: false, player2: false });
 
-  // ゲーム設定を構築
+  // ゲーム設定を構築（Firebaseから取得した設定を優先）
   const gameSettings: GameSettings = {
-    winScore: winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore,
-    timeLimit: (timeLimit as 'none' | '30s' | '1m') || DEFAULT_GAME_SETTINGS.timeLimit,
+    winScore: roomData?.gameSettings?.winScore || (winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore),
+    timeLimit: roomData?.gameSettings?.timeLimit || (timeLimit as 'none' | '30s' | '1m') || DEFAULT_GAME_SETTINGS.timeLimit,
   };
 
   // ルーム監視
@@ -223,9 +224,9 @@ export default function WaitingForOpponentScreen() {
                 {lotteryPhase ? '先手が決まりました！' : '先手を抽選中...'}
               </div>
               <div className="flex justify-center items-center gap-4 sm:gap-8 mb-2 sm:mb-4 w-full">
-                <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{roomData?.player1.name}</div>
+                <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`} title={roomData?.player1.name}>{truncatePlayerName(roomData?.player1.name || '')}</div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-400">VS</div>
-                <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`}>{roomData?.player2?.name}</div>
+                <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'bg-emerald-400 text-white scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`} title={roomData?.player2?.name}>{truncatePlayerName(roomData?.player2?.name || '')}</div>
               </div>
               <div className={`w-10 h-10 sm:w-16 sm:h-16 border-4 border-emerald-400 border-t-transparent rounded-full mx-auto ${lotteryPhase ? 'animate-pulse' : 'animate-spin'}`}></div>
             </div>
@@ -287,7 +288,7 @@ export default function WaitingForOpponentScreen() {
         </div>
           {/* プレイヤー情報表示 */}
           <div className="text-base sm:text-lg text-black font-semibold text-center leading-snug mb-1">
-            {roomData.player1.name}
+            {truncatePlayerName(roomData.player1.name)}
         </div>
         {/* ルームID表示 */}
         <div className="flex items-center justify-center gap-2 mt-1">
@@ -359,7 +360,7 @@ export default function WaitingForOpponentScreen() {
           </div>
           {/* プレイヤー情報表示 */}
           <div className="text-base sm:text-lg text-black font-semibold text-center leading-snug mb-1">
-            {roomData.player1.name}
+            {truncatePlayerName(roomData.player1.name)}
             {roomData.player2 && `、${roomData.player2.name}`}
           </div>
           {/* ルームID表示 */}
@@ -383,8 +384,8 @@ export default function WaitingForOpponentScreen() {
           )}
           {/* 準備状況表示 */}
           <div className="flex gap-2 sm:gap-8 mt-4 sm:mt-6 w-full justify-center">
-            <div className={`px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-base sm:text-lg font-bold ${readyState.player1 ? 'bg-emerald-400 text-white' : 'bg-gray-200 text-gray-500'}`}>{roomData?.player1.name} {readyState.player1 ? '✔' : ''}</div>
-            <div className={`px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-base sm:text-lg font-bold ${readyState.player2 ? 'bg-emerald-400 text-white' : 'bg-gray-200 text-gray-500'}`}>{roomData?.player2?.name || '---'} {readyState.player2 ? '✔' : ''}</div>
+            <div className={`px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-base sm:text-lg font-bold ${readyState.player1 ? 'bg-emerald-400 text-white' : 'bg-gray-200 text-gray-500'}`} title={roomData?.player1.name}>{truncatePlayerName(roomData?.player1.name || '')} {readyState.player1 ? '✔' : ''}</div>
+            <div className={`px-3 sm:px-6 py-2 sm:py-3 rounded-xl text-base sm:text-lg font-bold ${readyState.player2 ? 'bg-emerald-400 text-white' : 'bg-gray-200 text-gray-500'}`} title={roomData?.player2?.name}>{truncatePlayerName(roomData?.player2?.name || '---')} {readyState.player2 ? '✔' : ''}</div>
           </div>
           {/* タイトルに戻るボタン */}
           <button

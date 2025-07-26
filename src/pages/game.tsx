@@ -12,10 +12,10 @@ export default function GamePage() {
   const { roomId, player1Name, player2Name, firstTurn, winScore, timeLimit } = router.query;
   const { setTheme } = useTheme();
 
-  // ゲーム設定を構築
+  // ゲーム設定を構築（Firebaseから取得した設定を優先）
   const gameSettings: GameSettings = {
-    winScore: winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore,
-    timeLimit: (timeLimit as 'none' | '30s' | '1m') || DEFAULT_GAME_SETTINGS.timeLimit,
+    winScore: roomData?.gameSettings?.winScore || (winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore),
+    timeLimit: roomData?.gameSettings?.timeLimit || (timeLimit as 'none' | '30s' | '1m') || DEFAULT_GAME_SETTINGS.timeLimit,
   };
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
@@ -7,9 +7,11 @@ import RulesPopup from '../components/RulesPopup';
 import { BGMControlButton } from '../components/BGMControlButton';
 import { useBGM } from '../contexts/BGMContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { CellState, PlayerType, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS, GameResult } from '../types/game';
+import { CellState, PlayerType, PlayerInfo, GameResult } from '../types/game';
 import { createEmptyBoard, checkForConnect4, isColumnFull, applyGravity, checkForCombos, checkForCombosAfterGravity, checkWinCondition } from '../utils/gameLogic';
-import { AILevel, aiMove, getAIAvatar, getAIName, getAIThinkingTime, getAllAICharacters } from '../utils/aiLogic';
+import { AILevel, getAIName, getAICharacter, getAIThinkingTime, aiMove, getAllAICharacters } from '../utils/aiLogic';
+import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
+import { truncatePlayerName } from '../utils/textUtils';
 
 interface AIGameScreenProps {
   playerName: string;
@@ -27,20 +29,20 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     name: playerName,
     avatar: '/assets/Avater/Avater/normal_graycat.png',
     score: 0,
-    isTurn: true,
+    isTurn: false,
     timer: 0,
     isActive: true,
-    type: 'graycat',
+    type: 'graycat'
   });
   
   const [player2, setPlayer2] = useState<PlayerInfo>({
     name: getAIName(aiLevel),
-    avatar: getAIAvatar(aiLevel),
+    avatar: getAICharacter(aiLevel)?.avatar || '/assets/Avater/Avater/normal_tiger.png',
     score: 0,
     isTurn: false,
     timer: 0,
     isActive: true,
-    type: 'ai',
+    type: 'ai'
   });
 
   // ゲーム状態
@@ -242,7 +244,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   };
 
   // 制限時間切れ判定
-  const checkTimeUp = useCallback(() => {
+  const checkTimeUp = () => {
     if (gameSettings.timeLimit === 'none' || gameOver) return;
     
     const timeLimit = gameSettings.timeLimit === '30s' ? 30 : 60;
@@ -253,10 +255,10 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     if (timers.player2 >= timeLimit && !timeUpPlayer) {
       handleTimeUp('player2');
     }
-  }, [gameSettings.timeLimit, timers, gameOver, timeUpPlayer]);
+  };
 
   // 時間切れ処理
-  const handleTimeUp = useCallback((player: 'player1' | 'player2') => {
+  const handleTimeUp = (player: 'player1' | 'player2') => {
     setTimeUpPlayer(player);
     setShowTimeUpMessage(true);
     setGameOver(true);
@@ -275,10 +277,10 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setTimeout(() => {
       setShowTimeUpMessage(false);
     }, 3000);
-  }, [player1.name, player2.name, gameBoard]);
+  };
 
   // 時間警告の管理
-  const checkTimeWarning = useCallback(() => {
+  const checkTimeWarning = () => {
     if (gameSettings.timeLimit === 'none' || gameOver) return;
     
     const timeLimit = gameSettings.timeLimit === '30s' ? 30 : 60;
@@ -291,7 +293,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     } else {
       setTimeWarning(null);
     }
-  }, [gameSettings.timeLimit, timers, gameOver]);
+  };
 
   // タイマー: プレイヤーの番の時だけ増える
   useEffect(() => {
@@ -375,7 +377,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   }, [aiThinking, aiLevel, selectedStrength, player2.name]);
 
   // AIの手番処理
-  const handleAITurn = useCallback(async () => {
+  const handleAITurn = () => {
     console.log('handleAITurn実行:', { isProcessing, gameOver });
     if (isProcessing || gameOver) return;
     
@@ -397,11 +399,11 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       
       // 各段階で少し待機
       for (let i = 0; i < phaseCount; i++) {
-        await new Promise(resolve => setTimeout(resolve, phaseTime));
+        setTimeout(() => {}, phaseTime);
       }
     } else {
       // 初級・中級AIは単純に思考時間だけ待機
-      await new Promise(resolve => setTimeout(resolve, baseThinkingTime));
+      setTimeout(() => {}, baseThinkingTime);
     }
     
     setAiThinking(false);
@@ -410,12 +412,12 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     const aiColumn = aiMove(gameBoard, currentAILevel);
     if (aiColumn !== -1) {
       // handleColumnClickを直接呼び出し（AIの手番として明示）
-      await handleColumnClickDirect(aiColumn, 'ai');
+      handleColumnClickDirect(aiColumn, 'ai');
     }
-  }, [isProcessing, gameOver, aiLevel, selectedStrength, gameBoard]); // player2.nameを依存配列から削除
+  };
 
   // 直接的なセルクリック処理（循環参照を避けるため）
-  const handleColumnClickDirect = useCallback(async (columnIndex: number, caller?: 'ai' | 'player') => {
+  const handleColumnClickDirect = (columnIndex: number, caller?: 'ai' | 'player') => {
     if (isProcessing || gameOver) return;
     
     // 呼び出し元に基づいてプレイヤータイプを決定
@@ -656,7 +658,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       }
       if (!foundCombo) break;
       // 3. 星セルを一定時間後に消去（両プレイヤーのconnect4処理が終わった後）
-      await new Promise(res => setTimeout(res, 1200)); // 1500ms → 1200ms
+      setTimeout(() => {}, 1200); // 1500ms → 1200ms
       [currentTurnPlayerCombo, opponentPlayerCombo].forEach((combo) => {
         if (combo && combo.result.hasCombo) {
           newBoard = newBoard.map((row, rIdx) =>
@@ -670,11 +672,11 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       });
       setGameBoard(newBoard);
       // 4. 重力適用
-      await new Promise(res => setTimeout(res, 300));
+      setTimeout(() => {}, 300);
       newBoard = applyGravity(newBoard);
       setGameBoard(newBoard);
       // 5. 少し待ってから次の連鎖判定
-      await new Promise(res => setTimeout(res, 300));
+      setTimeout(() => {}, 300);
       
       // 重力適用後のConnect4判定（下から順に処理）
       const player1ComboAfterGravity = checkForCombosAfterGravity(newBoard, 'player1');
@@ -764,7 +766,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setTimeout(() => {
       setIsProcessing(false);
     }, 500); // 0.5秒の遅延を追加
-  }, [isProcessing, gameOver, player1.score, player2.score, gameBoard, gameSettings.winScore]); // player1.isTurn, player2.isTurnを依存配列から削除
+  };
 
   // AIの手番を監視
   useEffect(() => {
@@ -804,12 +806,12 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   }, [player2.isTurn, player1.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, showFirstTurnOverlay, handleAITurn]); // player2.typeを依存配列から削除
 
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
-  const handleColumnClick = useCallback(async (columnIndex: number) => {
+  const handleColumnClick = (columnIndex: number) => {
     // プレイヤーの手番のみ処理（先手表示オーバーレイ中は除外）
     if (player1.isTurn && !showFirstTurnOverlay) {
-      await handleColumnClickDirect(columnIndex, 'player');
+      handleColumnClickDirect(columnIndex, 'player');
     }
-  }, [handleColumnClickDirect, showFirstTurnOverlay]); // showFirstTurnOverlayを依存配列に追加
+  };
 
   // ハイライト（プレイヤーの番の時のみ、先手表示オーバーレイ中は除外）
   const handleColumnHover = (col: number) => { 
@@ -848,7 +850,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     const newPlayer2 = {
       ...player2,
       name: getAIName(selectedStrength),
-      avatar: getAIAvatar(selectedStrength),
+      avatar: getAICharacter(selectedStrength)?.avatar || '/assets/Avater/Avater/normal_tiger.png',
     };
     setPlayer2(newPlayer2);
     setShowStrengthPopup(false);
@@ -1065,9 +1067,9 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
                     {lotteryPhase ? '先手が決まりました！' : '先手を抽選中...'}
                   </div>
                   <div className="flex justify-center items-center gap-4 sm:gap-8 mb-2 sm:mb-4 w-full">
-                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`} style={lotteryPhase && selectedPlayer === 'player1' ? { backgroundColor: colors.player1Color, color: 'white' } : {}}>{player1.name}</div>
+                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player1' ? 'scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`} style={lotteryPhase && selectedPlayer === 'player1' ? { backgroundColor: colors.player1Color, color: 'white' } : {}} title={player1.name}>{truncatePlayerName(player1.name)}</div>
                     <div className="text-lg sm:text-2xl font-bold text-gray-400">VS</div>
-                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`} style={lotteryPhase && selectedPlayer === 'player2' ? { backgroundColor: colors.player2Color, color: 'white' } : {}}>{player2.name}</div>
+                    <div className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-base sm:text-lg font-bold transition-all duration-500 ${lotteryPhase && selectedPlayer === 'player2' ? 'scale-110 shadow-lg' : 'bg-gray-200 text-gray-600'}`} style={lotteryPhase && selectedPlayer === 'player2' ? { backgroundColor: colors.player2Color, color: 'white' } : {}} title={player2.name}>{truncatePlayerName(player2.name)}</div>
                   </div>
                   <div className={`w-10 h-10 sm:w-16 sm:h-16 border-4 border-emerald-400 border-t-transparent rounded-full mx-auto ${lotteryPhase ? 'animate-pulse' : 'animate-spin'}`}></div>
                 </div>
@@ -1105,7 +1107,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
           <div className={`flex flex-col items-center transition-all duration-300 ${player1.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-2 py-1 sm:px-3 sm:py-2`}> 
             <img src={player1.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
             <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
-              <span className="truncate" title={player1.name}>{player1.name}</span>
+              <span className="truncate" title={player1.name}>{truncatePlayerName(player1.name)}</span>
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: colors.player1Color }} title="あなたのコマ色" />
             </div>
             <div className={`text-xs sm:text-base font-mono tracking-wider ${getTimerWarningClass('player1')}`}>
@@ -1124,7 +1126,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
           <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-2 py-1 sm:px-3 sm:py-2 relative`}>
             <img src={player2.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
             <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
-              <span className="truncate" title={player2.name}>{player2.name}</span>
+              <span className="truncate" title={player2.name}>{truncatePlayerName(player2.name)}</span>
               <span className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{ background: colors.player2Color }} title="AIのコマ色" />
             </div>
             <div className={`text-xs sm:text-base font-mono tracking-wider ${getTimerWarningClass('player2')}`}>

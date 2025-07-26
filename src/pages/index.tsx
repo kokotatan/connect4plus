@@ -102,11 +102,11 @@ export default function HomePage() {
       setIsLoading(true);
       try {
         const newRoomId = generateRoomId();
-        // テーマ設定を含めてルームを作成
-        await createRoom(newRoomId, player1Name.trim(), currentTheme);
-        console.log('ルーム作成完了:', { roomId: newRoomId, playerName: player1Name.trim(), theme: currentTheme });
-        // ゲーム設定を含めてroomBuildingに遷移
-        router.push(`/roomBuilding?roomId=${newRoomId}&player1Name=${encodeURIComponent(player1Name.trim())}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
+        // テーマ設定とゲーム設定を含めてルームを作成
+        await createRoom(newRoomId, player1Name.trim(), currentTheme, gameSettings);
+        console.log('ルーム作成完了:', { roomId: newRoomId, playerName: player1Name.trim(), theme: currentTheme, gameSettings });
+        // ゲーム設定を含めてroomCreatedに遷移
+        router.push(`/roomCreated?roomId=${newRoomId}&player1Name=${encodeURIComponent(player1Name.trim())}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
       } catch (error) {
         alert('ルーム作成エラー: ' + (error instanceof Error ? error.message : String(error)));
         setIsLoading(false);

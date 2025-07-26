@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getDatabase, ref, set, get, onValue, off, remove } from 'firebase/database';
-import { CellState } from '../types/game';
+import { CellState, GameSettings } from '../types/game';
 
 // プレイヤー情報の型定義
 export interface PlayerInfo {
@@ -27,6 +27,7 @@ export interface RoomData {
   status: 'waiting' | 'ready' | 'playing' | 'finished';
   createdAt: number;
   theme?: 'modern' | 'classic'; // テーマ設定を追加
+  gameSettings?: GameSettings; // ゲーム設定を追加
   gameState?: {
     board: CellState[][];
     currentTurn: 'player1' | 'player2';
@@ -135,28 +136,31 @@ export const getPlayerInfo = (): PlayerInfo | null => {
   }
 };
 
-// ルーム作成（セッション情報付き）
-export const createRoom = async (roomId: string, player1Name: string, theme: 'modern' | 'classic' = 'modern') => {
+// ルーム作成時にゲーム設定も保存
+export const createRoom = async (roomId: string, player1Name: string, theme: 'modern' | 'classic' = 'modern', gameSettings?: GameSettings) => {
   const sessionId = getSessionId();
-  const roomRef = ref(db, `rooms/${roomId}`);
-  const roomData = {
+  
+  const roomData: RoomData = {
     player1: {
       name: player1Name,
       sessionId: sessionId,
-      isReady: true
+      isReady: false
     },
     player2: null,
     status: 'waiting',
     createdAt: Date.now(),
-    theme: theme // テーマ設定を保存
+    theme: theme,
+    gameSettings: gameSettings // ゲーム設定を保存
   };
-  
-  await set(roomRef, roomData);
-  
-  // プレイヤー情報を保存
-  savePlayerInfo(roomId, player1Name, true);
-  
-  console.log('ルーム作成完了:', roomId, 'セッションID:', sessionId, 'テーマ:', theme);
+
+  try {
+    await set(ref(db, `rooms/${roomId}`), roomData);
+    console.log('ルーム作成成功:', roomId);
+    return true;
+  } catch (error) {
+    console.error('ルーム作成エラー:', error);
+    return false;
+  }
 };
 
 // ルーム参加（セッション情報付き）
@@ -223,6 +227,18 @@ export const updateRoomTheme = async (roomId: string, theme: 'modern' | 'classic
   const roomRef = ref(db, `rooms/${roomId}/theme`);
   await set(roomRef, theme);
   console.log('テーマ設定更新:', roomId, 'テーマ:', theme);
+};
+
+// ゲーム設定を更新する関数
+export const updateRoomGameSettings = async (roomId: string, gameSettings: GameSettings) => {
+  try {
+    await set(ref(db, `rooms/${roomId}/gameSettings`), gameSettings);
+    console.log('ゲーム設定更新成功:', gameSettings);
+    return true;
+  } catch (error) {
+    console.error('ゲーム設定更新エラー:', error);
+    return false;
+  }
 };
 
 // Firebase接続テスト

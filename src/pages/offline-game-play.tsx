@@ -8,6 +8,7 @@ import ScoreGauge from '../components/ScoreGauge';
 import RulesPopup from '../components/RulesPopup';
 import { CellState, PlayerInfo, GameSettings, DEFAULT_GAME_SETTINGS, PlayerType, GameResult } from '../types/game';
 import { createEmptyBoard, checkForCombos, checkForCombosAfterGravity, applyGravity, checkWinCondition, isColumnFull } from '../utils/gameLogic';
+import { truncatePlayerName } from '../utils/textUtils';
 
 export default function OfflineGamePlayPage() {
   const router = useRouter();
@@ -649,7 +650,7 @@ export default function OfflineGamePlayPage() {
             <div className={`flex flex-col items-center transition-all duration-300 ${player1.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-4 py-2 sm:px-6 sm:py-3 min-w-[120px] sm:min-w-[160px]`}> 
               <img src={player1.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
               <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
-                {player1.name}
+                {truncatePlayerName(player1.name)}
                 <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: colors.player1Color }} title="プレイヤー1のコマ色" />
               </div>
               <div className={`text-xs sm:text-base font-mono tracking-wider ${getTimerWarningClass('player1')}`}>
@@ -666,7 +667,7 @@ export default function OfflineGamePlayPage() {
             <div className={`flex flex-col items-center transition-all duration-300 ${player2.isTurn ? 'ring-2 ring-emerald-400 shadow bg-white' : 'bg-white/60'} rounded-xl px-4 py-2 sm:px-6 sm:py-3 min-w-[120px] sm:min-w-[160px]`}>
               <img src={player2.avatar} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white shadow border border-emerald-200" />
               <div className="text-base sm:text-lg font-bold mt-1 text-gray-800 flex items-center gap-1">
-                {player2.name}
+                {truncatePlayerName(player2.name)}
                 <span className="inline-block w-3 h-3 rounded-full border border-gray-300" style={{ background: colors.player2Color }} title="プレイヤー2のコマ色" />
               </div>
               <div className={`text-xs sm:text-base font-mono tracking-wider ${getTimerWarningClass('player2')}`}>
