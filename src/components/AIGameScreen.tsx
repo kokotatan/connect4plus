@@ -297,7 +297,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
 
   // タイマー: プレイヤーの番の時だけ増える
   useEffect(() => {
-    if (gameOver || showFirstTurnOverlay) return; // 先手表示中はタイマーを停止
+    if (gameOver || showFirstTurnOverlay || !gameStarted) return; // ゲーム開始前と先手表示中はタイマーを停止
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setTimers(prev => {
@@ -307,7 +307,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       });
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [player1.isTurn, player2.isTurn, gameOver, showFirstTurnOverlay]);
+  }, [player1.isTurn, player2.isTurn, gameOver, showFirstTurnOverlay, gameStarted]);
 
   // 制限時間チェック
   useEffect(() => {
