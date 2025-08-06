@@ -71,7 +71,8 @@ export default function WaitingForOpponentScreen() {
     playerInfo: playerInfo,
     mySessionId: mySessionId,
     currentPlayerType: currentPlayerType,
-    roomId: roomId
+    roomId: roomId,
+    roomData: roomData
   });
 
   // ゲーム設定を構築（Firebaseから取得した設定を優先）
@@ -112,6 +113,7 @@ export default function WaitingForOpponentScreen() {
     const readyRef = ref(db, `rooms/${roomId}/ready`);
     const unsubscribe = onValue(readyRef, (snapshot) => {
       const data = snapshot.val();
+      console.log('ready状態更新:', data); // デバッグ用
       if (data) {
         setReadyState({
           player1: !!data.player1,
@@ -119,10 +121,11 @@ export default function WaitingForOpponentScreen() {
         });
         
         // 両者が準備完了かつゲーム開始していない場合のみ処理
-        // プレイヤー2のisReadyも確認するように修正
-        if (data.player1 && data.player2 && roomData && roomData.player1 && roomData.player2 && 
-            roomData.player1.isReady && roomData.player2.isReady && !gameStarting) {
+        // ready状態とroomDataの両方を確認
+        if (data.player1 && data.player2 && roomData && roomData.player1 && roomData.player2 && !gameStarting) {
           console.log('両者準備完了、ゲーム開始処理を開始');
+          console.log('ready状態:', data);
+          console.log('roomData状態:', roomData);
           
           // プレイヤー1のみがゲーム状態を初期化するように制限
           if (mySessionId === roomData.player1.sessionId) {
@@ -169,8 +172,29 @@ export default function WaitingForOpponentScreen() {
             });
           } else {
             console.log('プレイヤー2はゲーム状態の初期化を待機中');
+            console.log('プレイヤー2のセッション情報:', {
+              mySessionId: mySessionId,
+              player2SessionId: roomData.player2?.sessionId,
+              isPlayer2Match: mySessionId === roomData.player2?.sessionId
+            });
             // プレイヤー2はゲーム状態の初期化を待機
-            setGameStarting(true);
+            // ゲーム状態の初期化完了を監視
+            const gameStateRef = ref(db, `rooms/${roomId}/gameState`);
+            const unsubscribeGameState = onValue(gameStateRef, (snapshot) => {
+              const gameState = snapshot.val();
+              if (gameState && gameState.firstTurn) {
+                console.log('プレイヤー2: ゲーム状態初期化完了を検知');
+                setGameStarting(true);
+                setTimeout(() => {
+                  setLotteryPhase(true);
+                  setSelectedPlayer(gameState.firstTurn);
+                }, 1500);
+                setTimeout(() => {
+                  router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2?.name || '')}&firstTurn=${gameState.firstTurn}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
+                }, 4000);
+                unsubscribeGameState();
+              }
+            });
           }
         }
       } else {
@@ -186,7 +210,7 @@ export default function WaitingForOpponentScreen() {
       console.log('2人揃いました、ゲームBGMに切り替え');
       switchToGameBGM();
     }
-  }, [roomData, gameStarting, switchToGameBGM]);
+  }, [roomData?.player2, gameStarting]); // switchToGameBGMを依存配列から削除
 
   // ページ離脱時にルーム削除（作成者のみ）
   useEffect(() => {
@@ -238,9 +262,14 @@ export default function WaitingForOpponentScreen() {
   // ゲームスタートボタン押下
   const handleReady = () => {
     if (!roomId || !currentPlayerType) return;
+    console.log('ゲームスタートボタン押下:', { roomId, currentPlayerType, mySessionId });
     const readyRef = ref(db, `rooms/${roomId}/ready`);
     update(readyRef, {
       [currentPlayerType]: true
+    }).then(() => {
+      console.log('ready状態更新完了:', currentPlayerType);
+    }).catch((error) => {
+      console.error('ready状態更新エラー:', error);
     });
   };
 
@@ -393,10 +422,10 @@ export default function WaitingForOpponentScreen() {
   const isPlayer2 = roomData.player2 && roomData.player2.sessionId && mySessionId === roomData.player2.sessionId;
   
   // プレイヤー2が参加した直後は、プレイヤー1のセッションIDのみで検証
+  // プレイヤー1の場合は常に有効、プレイヤー2の場合はセッションIDが設定されている場合のみ有効
   const isValidSession = roomData.player1.sessionId && (
     isPlayer1 || 
-    (roomData.player2 && isPlayer2) ||
-    (roomData.player2 && !roomData.player2.sessionId && isPlayer1) // プレイヤー2が参加した直後は一時的にプレイヤー1のセッションIDのみで検証
+    (roomData.player2 && roomData.player2.sessionId && isPlayer2)
   );
   
   console.log('セッションID検証詳細:', {

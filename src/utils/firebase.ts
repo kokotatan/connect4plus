@@ -156,7 +156,11 @@ export const createRoom = async (roomId: string, player1Name: string, theme: 'mo
 
   try {
     await set(ref(db, `rooms/${roomId}`), roomData);
-    console.log('ルーム作成成功:', roomId);
+    
+    // プレイヤー情報を保存
+    savePlayerInfo(roomId, player1Name, true);
+    
+    console.log('ルーム作成成功:', roomId, 'セッションID:', sessionId);
     return true;
   } catch (error) {
     console.error('ルーム作成エラー:', error);
