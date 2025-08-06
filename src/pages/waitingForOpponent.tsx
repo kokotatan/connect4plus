@@ -242,7 +242,7 @@ export default function WaitingForOpponentScreen() {
   }
 
   // player2がいない場合のみ「対戦相手の参加を待っています。」画面
-  if (!roomData.player2 || !roomData.player1.sessionId || !roomData.player2.sessionId || !(mySessionId === roomData.player1.sessionId || mySessionId === roomData.player2.sessionId)) {
+  if (!roomData.player2) {
   return (
     <Layout>
       <style>{keyframes}</style>
@@ -321,6 +321,23 @@ export default function WaitingForOpponentScreen() {
           <BGMControlButton size="medium" className="shadow-2xl hover:shadow-3xl" />
         </div>
         
+      </Layout>
+    );
+  }
+
+  // セッションIDの検証（プレイヤー2が参加している場合のみ）
+  if (!roomData.player1.sessionId || !roomData.player2.sessionId || !(mySessionId === roomData.player1.sessionId || mySessionId === roomData.player2.sessionId)) {
+    return (
+      <Layout>
+        <div className="w-full flex flex-col items-center justify-center min-h-screen">
+          <div className="text-lg font-semibold text-red-600">セッション情報が無効です</div>
+          <button
+            onClick={() => router.push('/')}
+            className="mt-4 px-6 py-2 bg-emerald-400 text-white rounded-full font-semibold"
+          >
+            ホームに戻る
+          </button>
+        </div>
       </Layout>
     );
   }
