@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import ScoreGauge from '../components/ScoreGauge';
 import GameGrid from '../components/GameGrid';
@@ -377,7 +377,7 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
   }, [aiThinking, aiLevel, selectedStrength, player2.name]);
 
   // AIの手番処理
-  const handleAITurn = () => {
+  const handleAITurn = useCallback(() => {
     console.log('handleAITurn実行:', { isProcessing, gameOver });
     if (isProcessing || gameOver) return;
     
@@ -399,25 +399,33 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       
       // 各段階で少し待機
       for (let i = 0; i < phaseCount; i++) {
-        setTimeout(() => {}, phaseTime);
+        setTimeout(() => {
+          setAiThinkingText(patterns.phases[i]);
+          setAiThinkingPhase(i + 1);
+        }, i * phaseTime);
       }
     } else {
       // 初級・中級AIは単純に思考時間だけ待機
-      setTimeout(() => {}, baseThinkingTime);
+      setTimeout(() => {
+        setAiThinkingText('思考中...');
+      }, baseThinkingTime / 2);
     }
-    
-    setAiThinking(false);
     
     // AIの手を決定（現在のAI強度を使用）
-    const aiColumn = aiMove(gameBoard, currentAILevel);
-    if (aiColumn !== -1) {
-      // handleColumnClickを直接呼び出し（AIの手番として明示）
-      handleColumnClickDirect(aiColumn, 'ai');
-    }
-  };
+    setTimeout(() => {
+      setAiThinking(false);
+      const aiColumn = aiMove(gameBoard, currentAILevel);
+      if (aiColumn !== -1) {
+        // handleColumnClickを直接呼び出し（AIの手番として明示）
+        handleColumnClickDirect(aiColumn, 'ai');
+      } else {
+        setIsProcessing(false);
+      }
+    }, baseThinkingTime);
+  }, [isProcessing, gameOver, player2.name, aiLevel, selectedStrength, gameBoard]);
 
   // 直接的なセルクリック処理（循環参照を避けるため）
-  const handleColumnClickDirect = (columnIndex: number, caller?: 'ai' | 'player') => {
+  const handleColumnClickDirect = useCallback((columnIndex: number, caller?: 'ai' | 'player') => {
     if (isProcessing || gameOver) return;
     
     // 呼び出し元に基づいてプレイヤータイプを決定
@@ -759,24 +767,26 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     console.log('ターン交代完了:', {
       newPlayer1Turn: !player1.isTurn,
       newPlayer2Turn: !player2.isTurn,
-      player2Type: player2.type
+      player2Type: player2.type,
+      isProcessing: false
     });
     
     // ターン交代後に少し遅延を入れてから処理完了
     setTimeout(() => {
       setIsProcessing(false);
+      console.log('処理完了、次の手番準備完了');
     }, 500); // 0.5秒の遅延を追加
-  };
+  }, [isProcessing, gameOver, player1, player2, gameBoard, gameSettings.winScore]);
 
   // AIの手番を監視
   useEffect(() => {
-    const shouldAIMove = gameStarted && 
-      !isProcessing && 
-      !gameOver && 
-      player2.isTurn && 
-      player2.type === 'ai' &&
-      !showFirstTurnMessage &&
-      !showFirstTurnOverlay;
+    // AI手番の条件を明確化
+    const shouldAIMove = 
+      gameStarted &&           // ゲームが開始されている
+      !isProcessing &&         // 現在処理中ではない
+      !gameOver &&            // ゲームが終了していない
+      player2.isTurn &&       // AI（player2）の番である
+      player2.type === 'ai';  // player2がAIプレイヤーである
     
     console.log('AI手番判定:', {
       shouldAIMove,
@@ -785,37 +795,33 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
       gameOver,
       player2Turn: player2.isTurn,
       player2Type: player2.type,
-      showFirstTurnMessage,
-      showFirstTurnOverlay,
       reason: !gameStarted ? 'ゲーム未開始' :
          isProcessing ? '処理中' :
          gameOver ? 'ゲーム終了' :
          !player2.isTurn ? 'AIの番ではない' :
-         player2.type !== 'ai' ? 'AIプレイヤーではない' :
-         showFirstTurnMessage ? '初回メッセージ表示中' :
-         showFirstTurnOverlay ? '先手表示オーバーレイ表示中' : 'その他'
+         player2.type !== 'ai' ? 'AIプレイヤーではない' : 'その他'
     });
     
     if (shouldAIMove) {
-      const delay = 1500; // 1秒 → 1.5秒に延長
+      const delay = 1500; // 1.5秒後に実行
       console.log(`AI手番開始: ${delay}ms後に実行`);
       setTimeout(() => {
         handleAITurn();
       }, delay);
     }
-  }, [player2.isTurn, player1.isTurn, isProcessing, gameOver, gameStarted, showFirstTurnMessage, showFirstTurnOverlay, handleAITurn]); // player2.typeを依存配列から削除
+  }, [player2.isTurn, player1.isTurn, isProcessing, gameOver, gameStarted, handleAITurn]);
 
   // セルを置く（connect4+連鎖・重力・スコア・3点先取）
   const handleColumnClick = (columnIndex: number) => {
-    // プレイヤーの手番のみ処理（先手表示オーバーレイ中は除外）
-    if (player1.isTurn && !showFirstTurnOverlay) {
+    // プレイヤーの手番のみ処理
+    if (player1.isTurn) {
       handleColumnClickDirect(columnIndex, 'player');
     }
   };
 
-  // ハイライト（プレイヤーの番の時のみ、先手表示オーバーレイ中は除外）
+  // ハイライト（プレイヤーの番の時のみ）
   const handleColumnHover = (col: number) => { 
-    if (!isProcessing && !gameOver && player1.isTurn && !showFirstTurnOverlay) setHighlightedColumn(col); 
+    if (!isProcessing && !gameOver && player1.isTurn) setHighlightedColumn(col); 
   };
   const handleColumnLeave = () => { setHighlightedColumn(null); };
 
