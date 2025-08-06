@@ -85,7 +85,8 @@ export const generateRoomId = (): string => {
 
 // セッションID生成
 export const generateSessionId = (): string => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  // より安全なセッションID生成（タイムスタンプ + ランダム文字列）
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 15);
 };
 
 // セッションIDを取得（既存のものがあれば使用、なければ新規生成）
@@ -186,7 +187,7 @@ export const joinRoom = async (roomId: string, player2Name: string) => {
     player2: {
       name: player2Name,
       sessionId: sessionId,
-      isReady: true
+      isReady: false  // 初期状態はfalseに変更
     },
     status: 'ready'
   };

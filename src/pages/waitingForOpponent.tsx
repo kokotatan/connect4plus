@@ -5,11 +5,12 @@ import { watchRoom, getPlayerInfo, RoomData } from '../utils/firebase';
 import RulesPopup from '../components/RulesPopup';
 import { BGMControlButton } from '../components/BGMControlButton';
 import { useBGM } from '../contexts/BGMContext';
-import { ref, set, onValue, off, update } from 'firebase/database';
+import { ref, set, onValue, off, update, get } from 'firebase/database';
 import { db } from '../utils/firebase';
 import { createEmptyBoard } from '../utils/gameLogic';
 import { GameSettings, DEFAULT_GAME_SETTINGS } from '../types/game';
 import { truncatePlayerName } from '../utils/textUtils';
+import { deleteRoom } from '../utils/firebase';
 
 const GRAYCAT_PLAYING = '/assets/Avater/PosingAvater/graycat_playing.png';
 const TIGER_PLAYING = '/assets/Avater/PosingAvater/tiger_playing.png';
@@ -118,48 +119,59 @@ export default function WaitingForOpponentScreen() {
         });
         
         // 両者が準備完了かつゲーム開始していない場合のみ処理
-        if (data.player1 && data.player2 && roomData && roomData.player1 && roomData.player2 && !gameStarting) {
+        // プレイヤー2のisReadyも確認するように修正
+        if (data.player1 && data.player2 && roomData && roomData.player1 && roomData.player2 && 
+            roomData.player1.isReady && roomData.player2.isReady && !gameStarting) {
           console.log('両者準備完了、ゲーム開始処理を開始');
           
-          // ゲームスタート前にフェードアウト
-          fadeOut(1000); // 1秒でフェードアウト
-          
-          // ゲーム開始時にBGMを切り替え
-          switchToGameBGM();
-          
-          // ゲーム開始前にゲーム状態をリセット
-          const gameStateRef = ref(db, `rooms/${roomId}/gameState`);
-          const initialBoard = createEmptyBoard();
-          const firstTurn = Math.random() < 0.5 ? 'player1' : 'player2';
-          
-          set(gameStateRef, {
-            board: initialBoard,
-            currentTurn: firstTurn,
-            firstTurn: firstTurn, // 抽選結果を明示的に保存
-            player1Score: 0,
-            player2Score: 0,
-            player1Name: roomData.player1.name || '',
-            player2Name: roomData.player2.name || '',
-            gameOver: false,
-            winner: null
-          }).then(() => {
-            console.log('ゲーム状態初期化完了');
-            setGameStarting(true);
-            setTimeout(() => {
-              setLotteryPhase(true);
-              setSelectedPlayer(firstTurn);
-            }, 1500);
-            setTimeout(() => {
-              // ゲーム開始時にフェードイン
+          // プレイヤー1のみがゲーム状態を初期化するように制限
+          if (mySessionId === roomData.player1.sessionId) {
+            console.log('プレイヤー1がゲーム状態を初期化します');
+            
+            // ゲームスタート前にフェードアウト
+            fadeOut(1000); // 1秒でフェードアウト
+            
+            // ゲーム開始時にBGMを切り替え
+            switchToGameBGM();
+            
+            // ゲーム開始前にゲーム状態をリセット
+            const gameStateRef = ref(db, `rooms/${roomId}/gameState`);
+            const initialBoard = createEmptyBoard();
+            const firstTurn = Math.random() < 0.5 ? 'player1' : 'player2';
+            
+            set(gameStateRef, {
+              board: initialBoard,
+              currentTurn: firstTurn,
+              firstTurn: firstTurn, // 抽選結果を明示的に保存
+              player1Score: 0,
+              player2Score: 0,
+              player1Name: roomData.player1.name || '',
+              player2Name: roomData.player2.name || '',
+              gameOver: false,
+              winner: null
+            }).then(() => {
+              console.log('ゲーム状態初期化完了');
+              setGameStarting(true);
               setTimeout(() => {
-                fadeIn(2000); // 2秒でフェードイン
-              }, 100);
-              
-              router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2?.name || '')}&firstTurn=${firstTurn}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
-            }, 4000);
-          }).catch((error) => {
-            console.error('ゲーム状態初期化エラー:', error);
-          });
+                setLotteryPhase(true);
+                setSelectedPlayer(firstTurn);
+              }, 1500);
+              setTimeout(() => {
+                // ゲーム開始時にフェードイン
+                setTimeout(() => {
+                  fadeIn(2000); // 2秒でフェードイン
+                }, 100);
+                
+                router.push(`/game?roomId=${roomId}&player1Name=${encodeURIComponent(roomData.player1.name || '')}&player2Name=${encodeURIComponent(roomData.player2?.name || '')}&firstTurn=${firstTurn}&winScore=${gameSettings.winScore}&timeLimit=${gameSettings.timeLimit}`);
+              }, 4000);
+            }).catch((error) => {
+              console.error('ゲーム状態初期化エラー:', error);
+            });
+          } else {
+            console.log('プレイヤー2はゲーム状態の初期化を待機中');
+            // プレイヤー2はゲーム状態の初期化を待機
+            setGameStarting(true);
+          }
         }
       } else {
         setReadyState({ player1: false, player2: false });
@@ -180,14 +192,48 @@ export default function WaitingForOpponentScreen() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (roomId && typeof roomId === 'string' && player1Name) {
-        // deleteRoom(roomId); // deleteRoomはfirebase.tsから削除されたため、この行は削除
+        // プレイヤー1（ルーム作成者）の場合のみルームを削除
+        if (mySessionId === roomData?.player1?.sessionId) {
+          console.log('プレイヤー1がページを離脱、ルームを削除します');
+          deleteRoom(roomId);
+        }
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [roomId, player1Name]);
+  }, [roomId, player1Name, roomData, mySessionId]);
+
+  // プレイヤー2の離脱を監視
+  useEffect(() => {
+    if (!roomId || !roomData) return;
+    
+    // プレイヤー2が参加していたが、その後離脱した場合
+    if (roomData.player2 && mySessionId === roomData.player1.sessionId) {
+      const checkPlayer2Disconnect = setInterval(async () => {
+        try {
+          const roomRef = ref(db, `rooms/${roomId}`);
+          const snapshot = await get(roomRef);
+          const currentRoomData = snapshot.val();
+          
+          if (currentRoomData && !currentRoomData.player2) {
+            console.log('プレイヤー2が離脱しました');
+            // プレイヤー1の画面を待機画面に戻す
+            setGameStarting(false);
+            setLotteryPhase(false);
+            setSelectedPlayer(null);
+            setReadyState({ player1: false, player2: false });
+            clearInterval(checkPlayer2Disconnect);
+          }
+        } catch (error) {
+          console.error('プレイヤー2離脱チェックエラー:', error);
+        }
+      }, 5000); // 5秒ごとにチェック
+      
+      return () => clearInterval(checkPlayer2Disconnect);
+    }
+  }, [roomId, roomData, mySessionId]);
 
   // ゲームスタートボタン押下
   const handleReady = () => {
