@@ -65,6 +65,14 @@ export default function WaitingForOpponentScreen() {
   const currentPlayerType = playerInfo?.isPlayer1 ? 'player1' : 'player2';
   const [readyState, setReadyState] = useState<{ player1: boolean; player2: boolean }>({ player1: false, player2: false });
 
+  // デバッグ情報を出力
+  console.log('プレイヤー情報:', {
+    playerInfo: playerInfo,
+    mySessionId: mySessionId,
+    currentPlayerType: currentPlayerType,
+    roomId: roomId
+  });
+
   // ゲーム設定を構築（Firebaseから取得した設定を優先）
   const gameSettings: GameSettings = {
     winScore: roomData?.gameSettings?.winScore || (winScore ? parseInt(winScore as string) as 1 | 3 | 5 : DEFAULT_GAME_SETTINGS.winScore),
@@ -81,13 +89,21 @@ export default function WaitingForOpponentScreen() {
     // ルーム監視開始
     const unsubscribe = watchRoom(roomId, (data: RoomData | null) => {
       console.log('watchRoom data:', data); // デバッグ用
+      console.log('mySessionId:', mySessionId); // デバッグ用
       if (data) {
+        console.log('ルームデータ更新:', {
+          player1: data.player1,
+          player2: data.player2,
+          status: data.status,
+          hasPlayer2: !!data.player2,
+          player2HasSessionId: !!(data.player2 && data.player2.sessionId)
+        });
         setRoomData(data);
         setIsLoading(false);
       }
     });
     return () => unsubscribe();
-  }, [roomId, router]);
+  }, [roomId, router, mySessionId]);
 
   // ready監視
   useEffect(() => {
@@ -326,11 +342,46 @@ export default function WaitingForOpponentScreen() {
   }
 
   // セッションIDの検証（プレイヤー2が参加している場合のみ）
-  if (!roomData.player1.sessionId || !roomData.player2.sessionId || !(mySessionId === roomData.player1.sessionId || mySessionId === roomData.player2.sessionId)) {
+  // プレイヤー2が参加した直後はsessionIdがまだ設定されていない可能性があるため、より安全な検証を行う
+  const isPlayer1 = mySessionId === roomData.player1.sessionId;
+  const isPlayer2 = roomData.player2 && roomData.player2.sessionId && mySessionId === roomData.player2.sessionId;
+  
+  // プレイヤー2が参加した直後は、プレイヤー1のセッションIDのみで検証
+  const isValidSession = roomData.player1.sessionId && (
+    isPlayer1 || 
+    (roomData.player2 && isPlayer2) ||
+    (roomData.player2 && !roomData.player2.sessionId && isPlayer1) // プレイヤー2が参加した直後は一時的にプレイヤー1のセッションIDのみで検証
+  );
+  
+  console.log('セッションID検証詳細:', {
+    player1SessionId: roomData.player1.sessionId,
+    player2SessionId: roomData.player2?.sessionId,
+    mySessionId: mySessionId,
+    isPlayer1: isPlayer1,
+    isPlayer2: isPlayer2,
+    isValidSession: isValidSession,
+    currentPlayerType: currentPlayerType,
+    player2Joined: !!roomData.player2,
+    player2HasSessionId: !!(roomData.player2 && roomData.player2.sessionId)
+  });
+  
+  if (!isValidSession) {
+    console.log('セッションID検証エラー:', {
+      player1SessionId: roomData.player1.sessionId,
+      player2SessionId: roomData.player2?.sessionId,
+      mySessionId: mySessionId,
+      isPlayer1Match: isPlayer1,
+      isPlayer2Match: isPlayer2
+    });
     return (
       <Layout>
         <div className="w-full flex flex-col items-center justify-center min-h-screen">
           <div className="text-lg font-semibold text-red-600">セッション情報が無効です</div>
+          <div className="text-sm text-gray-600 mt-2">
+            プレイヤー1: {roomData.player1.sessionId}<br/>
+            プレイヤー2: {roomData.player2?.sessionId || '未設定'}<br/>
+            自分のセッション: {mySessionId}
+          </div>
           <button
             onClick={() => router.push('/')}
             className="mt-4 px-6 py-2 bg-emerald-400 text-white rounded-full font-semibold"
