@@ -90,13 +90,13 @@ export default function RoomCreatedScreen() {
         // ユーザーが共有をキャンセルした場合やエラーの場合
         if (error instanceof Error && error.name !== 'AbortError') {
           console.log('共有エラー:', error);
-          // フォールバックとしてコピー機能を使用
-          handleCopyUrl();
+          // フォールバックとしてアラートでURLを表示
+          alert(`共有に失敗しました。以下のURLをコピーしてください：\n\n${inviteUrl}`);
         }
       }
     } else {
-      // Web Share APIが利用できない場合はコピー機能を使用
-      handleCopyUrl();
+      // Web Share APIが利用できない場合はアラートでURLを表示
+      alert(`このデバイスでは共有機能が利用できません。以下のURLをコピーしてください：\n\n${inviteUrl}`);
     }
   };
 
@@ -167,40 +167,35 @@ export default function RoomCreatedScreen() {
               <span className="text-white text-xs font-semibold leading-snug">{copied ? 'コピー済' : 'コピー'}</span>
             </button>
           </div>
-          <div className="text-xs text-gray-500 mt-1">コピーできない場合は、URLを長押ししてコピーしてください。</div>
-          
-          {/* 共有ボタン群 */}
-          <div className="flex flex-col gap-2 mt-3">
-            {/* LINE共有ボタン */}
-            <button 
-              onClick={handleLineShare} 
-              className="w-full h-9 bg-green-500 rounded-[10px] flex items-center justify-center hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 transition-colors min-h-[44px]"
-              aria-label="LINEで友達と共有"
-            >
-              <svg className="w-4 h-4 text-white mr-2" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
-              </svg>
-              <span className="text-white text-xs font-semibold leading-snug">LINEで共有</span>
-            </button>
-            
-            {/* Web Share APIボタン */}
-            <button 
-              onClick={handleNativeShare} 
-              className="w-full h-9 bg-gradient-to-r from-blue-400 to-purple-500 rounded-[10px] flex items-center justify-center hover:from-blue-500 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors min-h-[44px]"
-              aria-label="友達と共有"
-            >
-              <svg className="w-4 h-4 text-white mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-              </svg>
-              <span className="text-white text-xs font-semibold leading-snug">友達と共有</span>
-            </button>
-          </div>
-          
-          <div className="text-xs text-gray-500 mt-2 text-center">
-            LINEで共有ボタンをタップして、LINEで友達を招待できます。<br/>
-            友達と共有ボタンで、デバイスの共有機能を使用できます。
-          </div>
         </div>
+        
+        {/* 共有ボタン群 */}
+        <div className="flex flex-col gap-2 mt-3 w-full">
+          {/* LINE共有ボタン */}
+          <button 
+            onClick={handleLineShare} 
+            className="w-full h-9 bg-green-500 rounded-[10px] flex items-center justify-center hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 transition-colors min-h-[44px]"
+            aria-label="LINEで友達と共有"
+          >
+            <svg className="w-4 h-4 text-white mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+            </svg>
+            <span className="text-white text-xs font-semibold leading-snug">LINEで共有</span>
+          </button>
+          
+          {/* Web Share APIボタン */}
+          <button 
+            onClick={handleNativeShare} 
+            className="w-full h-9 bg-gradient-to-r from-blue-400 to-purple-500 rounded-[10px] flex items-center justify-center hover:from-blue-500 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors min-h-[44px]"
+            aria-label="友達と共有"
+          >
+            <svg className="w-4 h-4 text-white mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+            </svg>
+            <span className="text-white text-xs font-semibold leading-snug">友達と共有</span>
+          </button>
+        </div>
+        
         {/* ゲームを開始するボタン（視認性アップ） */}
         <button
           onClick={handleStartGame}
