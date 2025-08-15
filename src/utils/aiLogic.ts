@@ -50,7 +50,7 @@ export const AI_CHARACTERS: AICharacter[] = [
     description: '「このピースが消えた後、3列が崩れる。」connect4plusの"落下システム"を逆手に取った重力読みの達人。計算も正確、筋肉も完璧。だが笑うとチャーミング。背中には「物理法則、背負ってます」と書かれたタトゥーがある。',
     avatar: '/assets/Avater/AIAvater/gravityLaw.png',
     level: '上級',
-    levelDescription: '先読み2手で戦略的'
+    levelDescription: '先読み3手で戦略的'
   },
   {
     id: AILevel.EXPERT,
@@ -59,7 +59,7 @@ export const AI_CHARACTERS: AICharacter[] = [
     description: '一手が盤面の未来すべてを決める。connect4plusにおける連鎖理論と破壊の極致を体現する存在。プレイヤーが操作しているはずなのに、なぜかAIのように見える。声は低く、「それはもう……消えている。」と呟く。',
     avatar: '/assets/Avater/AIAvater/omega.png',
     level: '最強',
-    levelDescription: '先読み4手で高度な戦略'
+    levelDescription: '先読み8手で高度な戦略'
   }
 ];
 
@@ -122,8 +122,8 @@ const checkWin = (board: CellState[][], player: PlayerType): boolean => {
 const evaluateBoard = (board: CellState[][], aiPlayer: PlayerType): number => {
   const humanPlayer: PlayerType = aiPlayer === 'player1' ? 'player2' : 'player1';
   
-  if (checkWin(board, aiPlayer)) return 1000;
-  if (checkWin(board, humanPlayer)) return -1000;
+  if (checkWin(board, aiPlayer)) return 10000;
+  if (checkWin(board, humanPlayer)) return -10000;
   
   let score = 0;
   const centerCol = Math.floor(board[0].length / 2);
@@ -137,24 +137,24 @@ const evaluateBoard = (board: CellState[][], aiPlayer: PlayerType): number => {
         
         // 中央列を重視
         if (col === centerCol) {
-          score += value * 5;
+          score += value * 10;
         } else if (col === centerCol - 1 || col === centerCol + 1) {
-          score += value * 3;
+          score += value * 6;
         } else if (col === centerCol - 2 || col === centerCol + 2) {
-          score += value * 2;
+          score += value * 4;
         } else {
-          score += value;
+          score += value * 2;
         }
         
         // 下の行を重視（重力のため）
-        const rowBonus = (board.length - row) * 0.5;
+        const rowBonus = (board.length - row) * 1.0;
         score += value * rowBonus;
       }
     }
   }
   
   // 潜在的な勝利パターンの評価
-  score += evaluatePotentialWins(board, aiPlayer) * 10;
+  score += evaluatePotentialWins(board, aiPlayer) * 20;
   
   return score;
 };
@@ -291,13 +291,13 @@ export const aiMove = (board: CellState[][], level: AILevel): number => {
       return validMoves[Math.floor(Math.random() * validMoves.length)];
       
     case AILevel.ADVANCED:
-      // 上級: 先読み2手
+      // 上級: 先読み3手
       let bestScore = -Infinity;
       let bestMove = validMoves[0];
       
       for (const col of validMoves) {
         const newBoard = makeMove(board, col, aiPlayer);
-        const score = minimax(newBoard, 2, -Infinity, Infinity, false, aiPlayer, 2);
+        const score = minimax(newBoard, 3, -Infinity, Infinity, false, aiPlayer, 3);
         if (score > bestScore) {
           bestScore = score;
           bestMove = col;
@@ -313,7 +313,7 @@ export const aiMove = (board: CellState[][], level: AILevel): number => {
       
       for (const col of validMoves) {
         const newBoard = makeMove(board, col, aiPlayer);
-        const score = minimax(newBoard, 6, -Infinity, Infinity, false, aiPlayer, 6);
+        const score = minimax(newBoard, 8, -Infinity, Infinity, false, aiPlayer, 8);
         if (score > bestScoreExpert) {
           bestScoreExpert = score;
           bestMoveExpert = col;
@@ -337,9 +337,9 @@ export const getAIThinkingTime = (level: AILevel): number => {
     case AILevel.ADVANCED:
       return 3000 + Math.random() * 4000; // 3.0-7.0秒
     case AILevel.EXPERT:
-      return 2000 + Math.random() * 3000; // 2.0-5.0秒（短縮）
+      return 4000 + Math.random() * 3000; // 4.0-7.0秒（上級より長く）
     default:
-      return 1000;
+      return 10000;
   }
 }; 
 
