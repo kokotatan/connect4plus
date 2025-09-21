@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import { AILevel, getAllAICharacters, getAICharacter } from '../utils/aiLogic';
 import { generateRoomId, createRoom, joinRoom, checkRoomExists, testFirebaseConnection } from '../utils/firebase';
 import RulesPopup from '../components/RulesPopup';
@@ -153,7 +154,14 @@ export default function HomePage() {
   const aiCharacters = getAllAICharacters();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-emerald-100 to-white flex flex-col justify-center items-center font-noto py-6 px-2">
+    <>
+      <Head>
+        <title>Connect4Plus - 次世代型立体四目並べ | 無料オンラインゲーム</title>
+        <meta name="description" content="Connect4Plusは次世代型立体四目並べゲームです。オンライン対戦、AI対戦、オフライン対戦が楽しめます。無料でプレイ可能、スマホ・PC対応。" />
+        <meta name="keywords" content="四目並べ,connect4,オンラインゲーム,AI対戦,無料ゲーム,パズルゲーム,対戦ゲーム,スマホゲーム" />
+        <link rel="canonical" href="https://connect4plus.vercel.app/" />
+      </Head>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-emerald-100 to-white flex flex-col justify-center items-center font-noto py-6 px-2">
       <div className="w-full max-w-md flex flex-col items-center gap-2">
         <div className="mb-2">
           <h1 className="text-4xl font-extrabold text-black text-center tracking-tight drop-shadow-sm">connect4plus</h1>
@@ -409,6 +417,7 @@ export default function HomePage() {
       >
         ↑
       </button>
-    </div>
+      </div>
+    </>
   );
 } 
