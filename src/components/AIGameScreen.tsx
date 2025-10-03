@@ -861,6 +861,9 @@ export default function AIGameScreen({ playerName, aiLevel, gameSettings = DEFAU
     setPlayer2(newPlayer2);
     setShowStrengthPopup(false);
     
+    // ゲームBGMに切り替え（再戦時）
+    switchToGameBGM();
+    
     // ゲームをリセット（ターン設定はhandleStartGameで行うため除外）
     setGameBoard(createEmptyBoard());
     setTimers({ player1: 0, player2: 0 });

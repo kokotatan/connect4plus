@@ -643,7 +643,8 @@ export default function GamePlayScreen({
   const handleRematch = () => {
     // オンラインモード時はルームの対戦待機画面に移動（ルームID付き）
     if (isOnlineMode && roomId) {
-      // 再戦時はBGMを継続（フェードアウトしない）
+      // 再戦時はゲームBGMを確実に再生
+      switchToGameBGM();
       // ready状態をリセットしてから遷移
       const readyRef = ref(db, `rooms/${roomId}/ready`);
       set(readyRef, { player1: false, player2: false });

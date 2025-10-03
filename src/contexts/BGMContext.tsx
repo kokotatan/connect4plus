@@ -41,11 +41,21 @@ export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const play = () => {
-    console.log('BGM play() 呼び出し:', { currentBGM, isEnabled, currentAudioRef: !!currentAudioRef.current });
-    if (currentAudioRef.current && isEnabled && !isPlaying) {
-      // 既に再生中の場合は何もしない
-      currentAudioRef.current.play().catch(error => {
-        console.error('BGM再生失敗:', error);
+    console.log('BGM play() 呼び出し:', { currentBGM, isEnabled, currentAudioRef: !!currentAudioRef.current, isPlaying });
+    if (currentAudioRef.current && isEnabled) {
+      // 再生中でない場合のみ再生を試行
+      if (!isPlaying) {
+        currentAudioRef.current.play().catch(error => {
+          console.error('BGM再生失敗:', error);
+        });
+      } else {
+        console.log('BGMは既に再生中です');
+      }
+    } else {
+      console.log('BGM再生条件を満たしていません:', { 
+        hasAudio: !!currentAudioRef.current, 
+        isEnabled, 
+        isPlaying 
       });
     }
   };
@@ -247,7 +257,16 @@ export const BGMProvider: React.FC<BGMProviderProps> = ({ children }) => {
     console.log('BGM switchToGameBGM() 呼び出し:', { currentBGM, isPlaying, isEnabled });
     if (currentBGM === 'game') {
       console.log('既にゲームBGMのため、切り替えをスキップ');
-      return; // 既にゲームBGMの場合は何もしない
+      // 既にゲームBGMでも、再生されていない場合は再生を試行
+      if (isEnabled && !isPlaying && currentAudioRef.current === gameAudioRef.current) {
+        console.log('ゲームBGMが停止中なので再生を試行');
+        if (currentAudioRef.current) {
+          currentAudioRef.current.play().catch(error => {
+            console.error('ゲームBGM再生失敗:', error);
+          });
+        }
+      }
+      return;
     }
     
     const wasPlaying = isPlaying;
